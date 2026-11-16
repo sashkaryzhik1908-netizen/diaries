@@ -2,13 +2,13 @@
 {% extends "base.html" %}
 
 {% block title %}
-Дневник №{{ diary.id }}
+Дневник №{{ diary.number }}
 {% endblock title %}
 
 {% block content %}
 <div class="container">
 
-    <h1>Дневник №{{ diary.id }}</h1>
+    <h1>Дневник №{{ diary.number }}</h1>
 
     <p class="text-muted">
         Создан: {{ diary.created_at.strftime("%d.%m.%Y %H:%M") }}
@@ -42,14 +42,16 @@
 
     <div id="diary-content">
 
-        {% for entry in diary.entries %}
+        {% for entry in entries %}
             {% if entry.category.slug == "prescriptions" and syndromes %}
                 <p class="mb-1">Ведущие патологические синдромы</p>
-                {% for syndrome in syndromes %}
-                    <ol style="list-style-type: disc; margin-bottom: 0; padding-left: 20px;">
-                    <li>{{ syndrome }}</li>
-                    </Ol>
-                {% endfor %}
+
+                <ol style="list-style-type: disc; margin-bottom: 0; padding-left: 20px;">
+                    {% for syndrome in syndromes %}
+                        <li>{{ syndrome }}</li>
+                    {% endfor %}
+                </ol>
+
                 <div class="mb-3"></div>
             {% endif %}
 
@@ -61,7 +63,7 @@
 
     </div>
 
-    {% if diary.entries %}
+    {% if entries %}
     <button
         type="button"
         class="btn btn-primary mt-2"
@@ -87,6 +89,8 @@
         action="{{ url_for('diaries.delete_diary', diary_id=diary.id) }}"
         onsubmit="return confirm('Удалить этот дневник?');"
     >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <button type="submit" class="btn btn-danger btn-sm">
             Удалить
         </button>
@@ -96,19 +100,19 @@
 
 <script>
     function copyDiary() {
-    const content = document.getElementById("diary-content");
+        const content = document.getElementById("diary-content");
 
-    let text = content.innerText.trim();
+        let text = content.innerText.trim();
 
-    text = text
-        .replace(/[ \t]+\n/g, "\n")
-        .replace(/\n{2,}/g, "\n")
-        .replace(/ +\./g, ".");
+        text = text
+            .replace(/[ \t]+\n/g, "\n")
+            .replace(/\n{2,}/g, "\n")
+            .replace(/ +\./g, ".");
 
-    navigator.clipboard.writeText(text)
-        .then(() => alert("Дневник скопирован"))
-        .catch(() => alert("Не удалось скопировать дневник"));
-}
+        navigator.clipboard.writeText(text)
+            .then(() => alert("Дневник скопирован"))
+            .catch(() => alert("Не удалось скопировать дневник"));
+    }
 </script>
 
 {% endblock content %}

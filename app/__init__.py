@@ -1,14 +1,18 @@
 from flask import Flask
 
 from config import Config
-from app.extensions import db, migrate, login_manager
+from app.extensions import db, migrate, login_manager, csrf
 
 
-def create_app():
+def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
 
     app.config.from_object(Config)
 
+    if test_config:
+        app.config.update(test_config)
+
+    csrf.init_app(app)
     db.init_app(app)
 
     from app import models as models

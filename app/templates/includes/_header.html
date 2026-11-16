@@ -1,65 +1,91 @@
-<div class="container">
-<nav class="navbar navbar-expand-lg bg-body-tertiary">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="{{ url_for('auth.index') }}">Главная</a>
-    
-      <ul class="navbar-nav">
 
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle"
-                           href="#"
-                           role="button"
-                           data-bs-toggle="dropdown"
-                           aria-expanded="false">
-                            <i class="bi bi-person-circle"></i>
-                            {% if not current_user.is_authenticated %}
-                            Пользователь
-                            {% else %}
-                            АДМИН 
-                            {% endif %}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                          {% if not current_user.is_authenticated %}
+<div class="container">
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('auth.index') }}">Главная</a>
+
+            <ul class="navbar-nav">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle"
+                       href="#"
+                       role="button"
+                       data-bs-toggle="dropdown"
+                       aria-expanded="false">
+                        <i class="bi bi-person-circle"></i>
+                        {% if not current_user.is_authenticated %}
+                            Авторизация
+                        {% else %}
+                            {{ current_user.username }}
+                        {% endif %}
+                    </a>
+
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        {% if not current_user.is_authenticated %}
                             <li>
                                 <a class="dropdown-item" href="{{ url_for('auth.login') }}">
-                                    Вход для админа
+                                    Вход
                                 </a>
                             </li>
-                            {% else %}
                             <li>
-                                <a class="dropdown-item" href="{{ url_for('auth.logout') }}">
-                                    Выйти
+                                <a class="dropdown-item" href="{{ url_for('auth.register') }}">
+                                    Регистрация
                                 </a>
                             </li>
-                            {% endif %}
-                        </ul>
-                    </li>
+                        {% else %}
+                            <li>
+                                <form method="POST" action="{{ url_for('auth.logout') }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="dropdown-item">
+                                        Выйти
+                                    </button>
+                                </form>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
 
-                </ul>
-  </div>
-</nav><br>
-<ul class="nav nav-underline">
-   {% if not current_user.is_authenticated %}
-  <li class="nav-item">
-    <a class="btn btn-primary" href="{{ url_for('diaries.list_diaries') }}">Список дневников</a>
-  </li>
-  {% else %}
-  <li class="nav-item">
-    <a class="btn btn-primary" href="{{ url_for('diaries.list_diaries') }}" role="button">Список дневников</a>
-  </li>
-  <li class="nav-item">
-     <a class="btn btn-primary" href="{{ url_for('categories.list_categories') }}" role="button">Редактор шаблонов</a>
-  </li>
-  <li class="nav-item">
-    <a class="btn btn-primary" href="{{ url_for('therapy.list_therapy_purposes') }}" role="button">
-        Цели терапии
-    </a>
-</li>
-<li class="nav-item">
-    <a class="btn btn-primary" href="{{ url_for('therapy.list_therapy_medications') }}" role="button">
-        Препараты
-    </a>
-</li>
-  {% endif %}
-</ul><br>
+    <br>
+
+    <ul class="nav nav-underline">
+        {% if current_user.is_authenticated %}
+            <li class="nav-item">
+                <a class="btn btn-primary"
+                   href="{{ url_for('diaries.list_diaries') }}"
+                   role="button">
+                    Список дневников
+                </a>
+            </li>
+
+            {% if current_user.is_admin %}
+                <li class="nav-item">
+                    <a class="btn btn-primary"
+                       href="{{ url_for('categories.list_categories') }}"
+                       role="button">
+                        Редактор шаблонов
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="btn btn-primary"
+                       href="{{ url_for('therapy.list_therapy_purposes') }}"
+                       role="button">
+                        Цели терапии
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="btn btn-primary"
+                       href="{{ url_for('therapy.list_therapy_medications') }}"
+                       role="button">
+                        Препараты
+                    </a>
+                </li>
+            {% endif %}
+        {% endif %}
+    </ul>
+
+    <br>
 </div>

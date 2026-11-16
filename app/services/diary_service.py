@@ -46,12 +46,9 @@ def process_prescriptions(form):
 
     # Получаем все ID целей терапии
     purpose_ids_int = [
-        int(form.get(f"purpose_id[{index}]", ""))
+        int(form.get(f"purpose_id[{index}]"))
         for index in group_indexes
-        if form.get(
-            f"purpose_id[{index}]",
-            "",
-        ).isdigit()
+        if form.get(f"purpose_id[{index}]", "").isdigit()
     ]
 
     # Получаем все ID препаратов
@@ -95,7 +92,6 @@ def process_prescriptions(form):
 
         # Препараты и дозировки
         medication_ids = form.getlist(f"medication_id[{index}][]")
-
         doses = form.getlist(f"dose[{index}][]")
 
         if not medication_ids:
@@ -109,10 +105,7 @@ def process_prescriptions(form):
         medication_parts = []
         group_valid = True
 
-        for medication_id, dose in zip(
-            medication_ids,
-            doses,
-        ):
+        for medication_id, dose in zip(medication_ids, doses):
             dose = dose.strip()
 
             if (
@@ -226,14 +219,25 @@ def process_category_form(form, variables, category):
 
     for variable in variables:
         if variable.field_type == "multiselect":
-            selected_ids = [
-                option_id
-                for option_id in form.get(
-                    variable.name,
-                    "",
-                ).split(",")
-                if option_id.isdigit()
-            ]
+            raw_selected_ids = form.get(variable.name, "").split(",")
+
+            if any(
+                option_id and not option_id.isdigit() for option_id in raw_selected_ids
+            ):
+                errors.append(
+                    f"Выбраны некорректные варианты в поле «{variable.label}»."
+                )
+                values[variable.name] = ""
+                continue
+
+            selected_ids = [option_id for option_id in raw_selected_ids if option_id]
+
+            if len(selected_ids) != len(set(selected_ids)):
+                errors.append(
+                    f"В поле «{variable.label}» обнаружены повторяющиеся варианты."
+                )
+                values[variable.name] = ""
+                continue
 
             selected_options = VariableOption.query.filter(
                 VariableOption.variable_id == variable.id,
@@ -241,6 +245,11 @@ def process_category_form(form, variables, category):
             ).all()
 
             options = {str(option.id): option for option in selected_options}
+
+            if len(options) != len(selected_ids):
+                errors.append(
+                    f"В поле «{variable.label}» выбраны недопустимые варианты."
+                )
 
             if variable.name == "drug":
                 drug_parts = []
@@ -279,12 +288,18 @@ def process_category_form(form, variables, category):
                 ]
 
         elif variable.field_type == "select":
-            selected = form.get(variable.name)
+            selected = form.get(
+                variable.name,
+                "",
+            )
 
             option = next(
                 (option for option in variable.options if option.value == selected),
                 None,
             )
+
+            if selected and not option:
+                errors.append(f"Выбран недопустимый вариант в поле «{variable.label}».")
 
             values[variable.name] = option.output_value if option else ""
 

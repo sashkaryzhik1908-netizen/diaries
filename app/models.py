@@ -74,20 +74,41 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(500), nullable=False)
-    is_admin = db.Column(db.Boolean, default=True, nullable=False)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
 
 
 class Diary(db.Model):
     __tablename__ = "diary"
 
     id = db.Column(db.Integer, primary_key=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id"),
+        nullable=False,
+    )
+
+    number = db.Column(db.Integer, nullable=False)
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+    )
 
     entries = db.relationship(
         "DiaryEntry",
         backref="diary",
         cascade="all, delete-orphan",
         order_by="DiaryEntry.category_id",
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "user_id",
+            "number",
+            name="unique_user_diary_number",
+        ),
     )
 
 

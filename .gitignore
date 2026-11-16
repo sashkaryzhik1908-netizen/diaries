@@ -14,3 +14,7 @@ __pycache__/
 *.log
 *.tmp
 *.bak
+
+.coverage
+htmlcov/
+instance/database_backup.db

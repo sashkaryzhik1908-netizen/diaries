@@ -1,10 +1,15 @@
 from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required
 
+from app.decorators import admin_required
 from app.extensions import db
 from app.forms import CategoryForm, TemplateVariableForm, VariableOptionForm
-from app.models import Category, TemplateVariable, VariableOption
-
+from app.models import (
+    Category,
+    TemplateVariable,
+    VariableOption,
+    DiaryEntry,
+)
 
 categories_bp = Blueprint("categories", __name__)
 
@@ -12,6 +17,7 @@ categories_bp = Blueprint("categories", __name__)
 # Добавление категории / изменение шаблона
 @categories_bp.route("/categories/add", methods=["GET", "POST"])
 @login_required
+@admin_required
 def add_category():
     form = CategoryForm()
 
@@ -38,6 +44,7 @@ def add_category():
 # Редактирование категории
 @categories_bp.route("/categories/edit/<int:category_id>", methods=["GET", "POST"])
 @login_required
+@admin_required
 def edit_category(category_id):
     category = Category.query.get_or_404(category_id)
 
@@ -64,8 +71,20 @@ def edit_category(category_id):
 # Удаление категории
 @categories_bp.route("/categories/delete/<int:category_id>", methods=["POST"])
 @login_required
+@admin_required
 def del_category(category_id):
     category = Category.query.get_or_404(category_id)
+
+    existing_entries = DiaryEntry.query.filter_by(
+        category_id=category.id,
+    ).first()
+
+    if existing_entries:
+        flash(
+            "Нельзя удалить категорию, которая используется в дневниках.",
+            "warning",
+        )
+        return redirect(url_for("categories.list_categories"))
 
     db.session.delete(category)
     db.session.commit()
@@ -81,6 +100,7 @@ def del_category(category_id):
     methods=["GET", "POST"],
 )
 @login_required
+@admin_required
 def add_variable(category_id):
     category = Category.query.get_or_404(category_id)
     form = TemplateVariableForm()
@@ -113,6 +133,7 @@ def add_variable(category_id):
     methods=["GET", "POST"],
 )
 @login_required
+@admin_required
 def edit_variable(variable_id):
     variable = TemplateVariable.query.get_or_404(variable_id)
     form = TemplateVariableForm(obj=variable)
@@ -146,6 +167,7 @@ def edit_variable(variable_id):
     methods=["POST"],
 )
 @login_required
+@admin_required
 def del_variable(variable_id):
     variable = TemplateVariable.query.get_or_404(variable_id)
 
@@ -164,6 +186,7 @@ def del_variable(variable_id):
     methods=["GET", "POST"],
 )
 @login_required
+@admin_required
 def add_option(variable_id):
     variable = TemplateVariable.query.get_or_404(variable_id)
     form = VariableOptionForm()
@@ -200,6 +223,7 @@ def add_option(variable_id):
     methods=["GET", "POST"],
 )
 @login_required
+@admin_required
 def edit_option(variable_id, option_id):
     variable = TemplateVariable.query.get_or_404(variable_id)
 
@@ -234,6 +258,7 @@ def edit_option(variable_id, option_id):
     methods=["POST"],
 )
 @login_required
+@admin_required
 def delete_option(variable_id, option_id):
     variable = TemplateVariable.query.get_or_404(variable_id)
 

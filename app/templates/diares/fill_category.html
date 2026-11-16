@@ -19,6 +19,7 @@
     {% endif %}
 
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         {% if category.slug == "prescriptions" %}
 
@@ -309,6 +310,10 @@
 
 <script>
 
+    // Данные ранее отправленной формы
+    const savedFormData = {{ form_data|tojson }};
+
+
     // ==========================================
     // MULTISELECT
     // ==========================================
@@ -390,9 +395,9 @@
 
     function getSavedDose(optionId) {
 
-        const saved = document.getElementById("saved_dose_" + optionId);
+        const saved = savedFormData[`dose_${optionId}`];
 
-        return saved ? saved.value : "";
+        return Array.isArray(saved) ? saved[0] || "" : saved || "";
     }
 
 
@@ -477,8 +482,6 @@
         const addButton = document.getElementById("add-prescription");
 
         if (!container || !addButton) return;
-
-        const savedFormData = {{ form_data|tojson }};
 
         function getSavedValue(name) {
             return savedFormData[name]?.[0] || "";

@@ -5,7 +5,7 @@ from flask_wtf import FlaskForm
 from app.extensions import db
 from app.forms import TherapyPurposeForm, TherapyMedicationForm
 from app.models import TherapyPurpose, TherapyGroup, TherapyMedication
-
+from app.decorators import admin_required
 
 therapy_bp = Blueprint("therapy", __name__)
 
@@ -31,6 +31,7 @@ def list_therapy_purposes():
 # Добавление цели терапии
 @therapy_bp.route("/therapy/purposes/add", methods=["GET", "POST"])
 @login_required
+@admin_required
 def add_therapy_purpose():
     form = TherapyPurposeForm()
 
@@ -73,6 +74,7 @@ def add_therapy_purpose():
     methods=["GET", "POST"],
 )
 @login_required
+@admin_required
 def edit_therapy_purpose(purpose_id):
     purpose = TherapyPurpose.query.get_or_404(purpose_id)
     form = TherapyPurposeForm(obj=purpose)
@@ -116,6 +118,7 @@ def edit_therapy_purpose(purpose_id):
     methods=["POST"],
 )
 @login_required
+@admin_required
 def delete_therapy_purpose(purpose_id):
     purpose = TherapyPurpose.query.get_or_404(purpose_id)
 
@@ -155,6 +158,7 @@ def list_therapy_medications():
 # Добавление препарата
 @therapy_bp.route("/therapy/medications/add", methods=["GET", "POST"])
 @login_required
+@admin_required
 def add_therapy_medication():
     form = TherapyMedicationForm()
 
@@ -196,6 +200,7 @@ def add_therapy_medication():
     methods=["GET", "POST"],
 )
 @login_required
+@admin_required
 def edit_therapy_medication(medication_id):
     medication = TherapyMedication.query.get_or_404(medication_id)
     form = TherapyMedicationForm(obj=medication)
@@ -240,6 +245,7 @@ def edit_therapy_medication(medication_id):
     methods=["POST"],
 )
 @login_required
+@admin_required
 def delete_therapy_medication(medication_id):
     medication = TherapyMedication.query.get_or_404(medication_id)
 

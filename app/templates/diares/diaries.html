@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block title %}
@@ -10,6 +11,7 @@
     <h1 class="mb-4">Медицинские дневники</h1>
 
     <form method="POST" action="{{ url_for('diaries.create_diary') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-primary mb-4">
             Создать новый дневник
         </button>
@@ -19,7 +21,7 @@
         <div class="card mb-3">
             <div class="card-body">
 
-                <h5>Дневник №{{ diary.id }}</h5>
+                <h5>Дневник №{{ diary.number }}</h5>
 
                 <p class="text-muted">
                     Создан: {{ diary.created_at.strftime("%d.%m.%Y %H:%M") }}
@@ -28,14 +30,21 @@
                 <a href="{{ url_for('diaries.view_diary', diary_id=diary.id) }}"
                    class="btn btn-outline-primary">
                     Открыть
-                </a><br><br>
+                </a>
+
+                <br><br>
+
                 <form method="POST"
-                  action="{{ url_for('diaries.delete_diary', diary_id=diary.id) }}"
-                    onsubmit="return confirm('Удалить этот дневник?');">
-                <button type="submit" class="btn btn-danger btn-sm">
-                    Удалить
-                </button>
+                      action="{{ url_for('diaries.delete_diary', diary_id=diary.id) }}"
+                      onsubmit="return confirm('Удалить этот дневник?');">
+
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        Удалить
+                    </button>
                 </form>
+
             </div>
         </div>
     {% else %}

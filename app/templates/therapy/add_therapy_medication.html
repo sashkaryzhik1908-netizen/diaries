@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if "edit" in request.path %}
+    Редактор препарата
+    {% else %}
+    Добавление препарата
+    {% endif %}
+{% endblock title %}
+
+{% block content %}
+<div class="container mt-4">
+    {% if "edit" in request.path %}
+    <h1 class="mb-4">Редактор препарата</h1>
+    {% else %}
+    <h1 class="mb-4">Добавление препарата</h1>
+    {% endif %}
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+            {{ form.name.label(class="form-label") }}
+            {{ form.name(class="form-control form-control-lg", placeholder="Введите название препарата") }}
+
+            {% for error in form.name.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="d-flex gap-2">
+            {{ form.submit(class="btn btn-primary") }}
+
+            <a href="{{ url_for('therapy.list_therapy_medications') }}"
+               class="btn btn-secondary">
+                Отмена
+            </a>
+        </div>
+    </form>
+
+</div>
+{% endblock content %}

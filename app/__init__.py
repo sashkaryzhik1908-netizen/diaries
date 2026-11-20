@@ -27,6 +27,10 @@ def create_app(test_config=None):
     migrate.init_app(app, db)
 
     login_manager.init_app(app)
+    login_manager.login_message = (
+        "Для доступа к этой странице необходимо войти в систему."
+    )
+    login_manager.login_message_category = "warning"
     login_manager.login_view = "auth.login"
 
     app.register_blueprint(auth_bp)

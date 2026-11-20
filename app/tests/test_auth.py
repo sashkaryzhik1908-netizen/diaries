@@ -1,3 +1,8 @@
+import pytest
+
+from werkzeug.security import generate_password_hash
+
+from app.extensions import db
 from app.models import User
 
 
@@ -42,15 +47,9 @@ def test_login_user(client, app):
     with app.app_context():
         user = User(
             username="login_user",
-            password="scrypt:32768:8:1$test$salt",
+            password=generate_password_hash("123456"),
             is_admin=False,
         )
-
-        from werkzeug.security import generate_password_hash
-
-        user.password = generate_password_hash("123456")
-
-        from app.extensions import db
 
         db.session.add(user)
         db.session.commit()
@@ -71,9 +70,6 @@ def test_login_user(client, app):
 
 # Проверка выхода
 def test_logout_user(client, app):
-    from werkzeug.security import generate_password_hash
-    from app.extensions import db
-
     with app.app_context():
         user = User(
             username="logout_user",
@@ -96,3 +92,108 @@ def test_logout_user(client, app):
 
     assert response.status_code == 200
     assert "Вы вышли из системы.".encode() in response.data
+
+
+# Создание пользователя и вход в систему
+def create_and_login_user(client, app, username, is_admin):
+    with app.app_context():
+        user = User(
+            username=username,
+            password=generate_password_hash("123456"),
+            is_admin=is_admin,
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+    return client.post(
+        "/login",
+        data={
+            "username": username,
+            "password": "123456",
+        },
+        follow_redirects=True,
+    )
+
+
+# Проверка доступа обычного пользователя к административным страницам
+@pytest.mark.parametrize(
+    "url",
+    [
+        "/categories",
+        "/therapy/purposes",
+        "/therapy/medications",
+        "/laboratory/categories",
+    ],
+)
+def test_regular_user_cannot_access_admin_pages(client, app, url):
+    create_and_login_user(
+        client,
+        app,
+        username="regular_user",
+        is_admin=False,
+    )
+
+    response = client.get(url)
+
+    assert response.status_code == 403
+
+
+# Проверка доступа администратора к административным страницам
+@pytest.mark.parametrize(
+    "url",
+    [
+        "/categories",
+        "/therapy/purposes",
+        "/therapy/medications",
+        "/laboratory/categories",
+    ],
+)
+def test_admin_can_access_admin_pages(client, app, url):
+    create_and_login_user(
+        client,
+        app,
+        username="admin_user",
+        is_admin=True,
+    )
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+
+
+# Проверка карточек главной страницы для обычного пользователя
+def test_regular_user_sees_only_diaries_card(client, app):
+    create_and_login_user(
+        client,
+        app,
+        username="index_regular",
+        is_admin=False,
+    )
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "Медицинские дневники".encode() in response.data
+    assert "Лаборатория".encode() not in response.data
+    assert "Препараты".encode() not in response.data
+    assert "Шаблоны".encode() not in response.data
+
+
+# Проверка карточек главной страницы для администратора
+def test_admin_sees_all_cards(client, app):
+    create_and_login_user(
+        client,
+        app,
+        username="index_admin",
+        is_admin=True,
+    )
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "Медицинские дневники".encode() in response.data
+    assert "Лаборатория".encode() in response.data
+    assert "Терапия".encode() in response.data
+    assert "Препараты".encode() in response.data
+    assert "Шаблоны".encode() in response.data

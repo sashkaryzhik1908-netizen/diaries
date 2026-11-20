@@ -1,3 +1,4 @@
+
 venv/
 .venv/
 env/
@@ -7,6 +8,7 @@ __pycache__/
 
 .env
 .env.*
+!.env.example
 
 .idea/
 .vscode/
@@ -17,4 +19,15 @@ __pycache__/
 
 .coverage
 htmlcov/
+
+# Локальные резервные копии базы данных
 instance/database_backup.db
+*.sqlite-journal
+
+# Архивы и резервные копии проекта
+*.zip
+
+# Сборки и исполняемые файлы
+build/
+dist/
+*.spec

@@ -11,6 +11,24 @@ from app.models import (
 def process_prescriptions(form):
     errors = []
 
+    # Режим и диета
+    regime = form.get("regime", "")
+    diet = form.get("diet", "")
+
+    hydrotation = form.get("hydrotation", "")
+    volume = form.get("volume", "")
+
+    allowed_units = {
+        "мл",
+        "мг",
+        "гр",
+        "ед",
+        "МЕ",
+        "мкг",
+        "л",
+        "мкг/кг/мин",
+    }
+
     allowed_methods = {
         "внутривенно",
         "внутривенно капельно",
@@ -21,6 +39,7 @@ def process_prescriptions(form):
         "через назогастральный зонд",
         "ингаляционно",
         "наружно",
+        "внутривенно, путём микроструйной перфузионной подачи, под контролем показателей гемодинамики с целевым срАД не менее 65 мм рт.ст",
     }
 
     allowed_frequencies = {
@@ -90,22 +109,29 @@ def process_prescriptions(form):
 
         purpose = purposes_dict[int(purpose_id)]
 
-        # Препараты и дозировки
+        # Препараты, дозировки и единицы измерения
         medication_ids = form.getlist(f"medication_id[{index}][]")
         doses = form.getlist(f"dose[{index}][]")
+        units = form.getlist(f"unit[{index}][]")
 
         if not medication_ids:
             errors.append("Добавьте хотя бы один препарат.")
             continue
 
-        if len(medication_ids) != len(doses):
-            errors.append("Количество препаратов не совпадает с количеством дозировок.")
+        if len(medication_ids) != len(doses) or len(medication_ids) != len(units):
+            errors.append(
+                "Количество препаратов, дозировок и единиц измерения не совпадает."
+            )
             continue
 
         medication_parts = []
         group_valid = True
 
-        for medication_id, dose in zip(medication_ids, doses):
+        for medication_id, dose, unit in zip(
+            medication_ids,
+            doses,
+            units,
+        ):
             dose = dose.strip()
 
             if (
@@ -121,9 +147,14 @@ def process_prescriptions(form):
                 group_valid = False
                 continue
 
+            if unit not in allowed_units:
+                errors.append("Выберите корректную единицу измерения.")
+                group_valid = False
+                continue
+
             medication = medications_dict[int(medication_id)]
 
-            medication_parts.append(f"{medication.name} {dose}")
+            medication_parts.append(f"{medication.name} {dose} {unit}")
 
         if not group_valid:
             continue
@@ -142,9 +173,9 @@ def process_prescriptions(form):
         frequency = form.get(
             f"frequency[{index}]",
             "",
-        )
+        ).strip()
 
-        if frequency not in allowed_frequencies:
+        if frequency and frequency not in allowed_frequencies:
             errors.append("Выберите корректную кратность.")
             continue
 
@@ -171,7 +202,10 @@ def process_prescriptions(form):
         medications_text = " + ".join(medication_parts)
 
         # Общие параметры добавляем один раз
-        group_text = f"{medications_text} {method} {frequency}"
+        # Общие параметры добавляем один раз
+        group_text = " ".join(
+            part for part in (medications_text, method, frequency) if part
+        )
 
         if formatted_date:
             group_text += f" (с {formatted_date})"
@@ -189,12 +223,15 @@ def process_prescriptions(form):
     if not errors:
         lines = [
             "В плане интенсивной терапии:",
-            "1. Режим 1, диета 0",
-            "2. Инфузионная терапия кристаллоидами, с учетом физ потребности, текущих и патологических потерь, в режиме нормогидратации, в общем объеме до 2500 мл/сут.",
+            f"1. Режим {regime}, диета {diet};",
+            f"2. Инфузионная терапия кристаллоидами, с учетом физ потребности, текущих и патологических потерь, в режиме {hydrotation}, в общем объеме до {volume} мл/сут;",
         ]
 
         for number, group in enumerate(groups, start=3):
-            lines.append(f"{number}. {group['name']}: {group['text']}.")
+            if "тромботических" in group["name"]:
+                lines.append(f"{number}. {group['name']} {group['text']};")
+            else:
+                lines.append(f"{number}. {group['name']}: {group['text']};")
 
         # Общие мероприятия интенсивной терапии
         lines.extend(

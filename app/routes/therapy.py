@@ -15,10 +15,8 @@ therapy_bp = Blueprint("therapy", __name__)
 @login_required
 def list_therapy_purposes():
     purposes = TherapyPurpose.query.order_by(
-        TherapyPurpose.order,
-        TherapyPurpose.id,
+        TherapyPurpose.name,
     ).all()
-
     delete_form = FlaskForm()
 
     return render_template(
@@ -53,7 +51,6 @@ def add_therapy_purpose():
         purpose = TherapyPurpose(
             name=name,
             output_value=form.output_value.data.strip(),
-            order=form.order.data,
         )
 
         db.session.add(purpose)
@@ -98,7 +95,6 @@ def edit_therapy_purpose(purpose_id):
 
         purpose.name = name
         purpose.output_value = form.output_value.data.strip()
-        purpose.order = form.order.data
 
         db.session.commit()
 

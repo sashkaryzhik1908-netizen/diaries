@@ -32,7 +32,7 @@ def login(client, username):
 # Просмотр списка категорий
 def test_list_categories(client, app):
     with app.app_context():
-        user = create_user("user")
+        create_user("user")
 
         category_1 = Category(
             name="Неврологический статус",
@@ -125,13 +125,11 @@ def test_list_options(client, app):
             variable_id=variable.id,
             value="Вариант 2",
             output_value="Вариант 2",
-            order=2,
         )
         option_2 = VariableOption(
             variable_id=variable.id,
             value="Вариант 1",
             output_value="Вариант 1",
-            order=1,
         )
 
         db.session.add_all([option_1, option_2])
@@ -493,7 +491,6 @@ def test_delete_variable_cascades_options(client, app):
             variable_id=variable.id,
             value="Тяжёлое",
             output_value="тяжёлое",
-            order=1,
         )
         db.session.add(option)
         db.session.commit()
@@ -588,7 +585,6 @@ def test_add_option(client, app):
         data={
             "value": "Тяжёлое",
             "output_value": "тяжёлое",
-            "order": "1",
             "submit": "Сохранить",
         },
         follow_redirects=True,
@@ -603,7 +599,6 @@ def test_add_option(client, app):
         ).first()
         assert option is not None
         assert option.output_value == "тяжёлое"
-        assert option.order == 1
 
 
 # Редактирование варианта
@@ -637,7 +632,6 @@ def test_edit_option(client, app):
             variable_id=variable.id,
             value="Старое",
             output_value="старое",
-            order=1,
         )
         db.session.add(option)
         db.session.commit()
@@ -652,7 +646,6 @@ def test_edit_option(client, app):
         data={
             "value": "Новое",
             "output_value": "новое",
-            "order": "2",
             "submit": "Сохранить",
         },
         follow_redirects=True,
@@ -664,7 +657,6 @@ def test_edit_option(client, app):
         option = db.session.get(VariableOption, option_id)
         assert option.value == "Новое"
         assert option.output_value == "новое"
-        assert option.order == 2
 
 
 # Обычный пользователь не может добавлять варианты
@@ -698,7 +690,6 @@ def test_user_cannot_add_option(client, app):
         data={
             "value": "Тяжёлое",
             "output_value": "тяжёлое",
-            "order": "1",
         },
     )
 
@@ -743,7 +734,6 @@ def test_edit_option_wrong_variable_returns_404(client, app):
             variable_id=variable_1.id,
             value="Тяжёлое",
             output_value="тяжёлое",
-            order=1,
         )
         db.session.add(option)
         db.session.commit()
@@ -758,7 +748,6 @@ def test_edit_option_wrong_variable_returns_404(client, app):
         data={
             "value": "Изменено",
             "output_value": "изменено",
-            "order": "2",
         },
     )
 
@@ -803,7 +792,6 @@ def test_delete_option_wrong_variable_returns_404(client, app):
             variable_id=variable_1.id,
             value="Тяжёлое",
             output_value="тяжёлое",
-            order=1,
         )
         db.session.add(option)
         db.session.commit()

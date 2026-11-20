@@ -196,7 +196,6 @@ def add_option(variable_id):
             variable_id=variable.id,
             value=form.value.data,
             output_value=form.output_value.data,
-            order=form.order.data,
         )
 
         db.session.add(option)
@@ -237,7 +236,6 @@ def edit_option(variable_id, option_id):
     if form.validate_on_submit():
         option.value = form.value.data
         option.output_value = form.output_value.data
-        option.order = form.order.data
 
         db.session.commit()
 
@@ -313,10 +311,9 @@ def list_options(variable_id):
 
     options = (
         VariableOption.query.filter_by(variable_id=variable_id)
-        .order_by(VariableOption.order)
+        .order_by(VariableOption.value)
         .all()
     )
-
     return render_template(
         "categories/list_options.html",
         options=options,

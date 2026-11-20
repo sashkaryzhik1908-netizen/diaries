@@ -3,8 +3,6 @@ import pytest
 from werkzeug.security import generate_password_hash
 
 from app.extensions import db
-from app.models import User, TherapyPurpose, TherapyMedication
-
 from app.models import (
     User,
     Diary,
@@ -47,12 +45,10 @@ def test_list_therapy_purposes(client, app):
                 TherapyPurpose(
                     name="Цель 2",
                     output_value="Цель 2",
-                    order=2,
                 ),
                 TherapyPurpose(
                     name="Цель 1",
                     output_value="Цель 1",
-                    order=1,
                 ),
             ]
         )
@@ -77,17 +73,14 @@ def test_therapy_purposes_order(client, app):
                 TherapyPurpose(
                     name="Цель 3",
                     output_value="Цель 3",
-                    order=3,
                 ),
                 TherapyPurpose(
                     name="Цель 1",
                     output_value="Цель 1",
-                    order=1,
                 ),
                 TherapyPurpose(
                     name="Цель 2",
                     output_value="Цель 2",
-                    order=2,
                 ),
             ]
         )
@@ -164,7 +157,6 @@ def test_add_therapy_purpose(client, app):
         data={
             "name": "Коррекция гемодинамики",
             "output_value": "коррекция гемодинамики",
-            "order": 1,
         },
         follow_redirects=True,
     )
@@ -179,7 +171,6 @@ def test_add_therapy_purpose(client, app):
 
         assert purpose is not None
         assert purpose.output_value == "коррекция гемодинамики"
-        assert purpose.order == 1
 
 
 # Запрет добавления дублирующей цели терапии
@@ -193,7 +184,6 @@ def test_add_duplicate_therapy_purpose(client, app):
             TherapyPurpose(
                 name="Коррекция гемодинамики",
                 output_value="коррекция гемодинамики",
-                order=1,
             )
         )
         db.session.commit()
@@ -205,7 +195,6 @@ def test_add_duplicate_therapy_purpose(client, app):
         data={
             "name": "Коррекция гемодинамики",
             "output_value": "другое значение",
-            "order": 2,
         },
         follow_redirects=True,
     )
@@ -219,7 +208,6 @@ def test_add_duplicate_therapy_purpose(client, app):
         ).all()
 
         assert len(purposes) == 1
-        assert purposes[0].order == 1
 
 
 # Редактирование цели терапии
@@ -232,7 +220,6 @@ def test_edit_therapy_purpose(client, app):
         purpose = TherapyPurpose(
             name="Старая цель",
             output_value="старое значение",
-            order=1,
         )
         db.session.add(purpose)
         db.session.commit()
@@ -246,7 +233,6 @@ def test_edit_therapy_purpose(client, app):
         data={
             "name": "Новая цель",
             "output_value": "новое значение",
-            "order": 2,
         },
         follow_redirects=True,
     )
@@ -259,7 +245,6 @@ def test_edit_therapy_purpose(client, app):
 
         assert purpose.name == "Новая цель"
         assert purpose.output_value == "новое значение"
-        assert purpose.order == 2
 
 
 # Запрет изменения цели на существующее название
@@ -273,12 +258,10 @@ def test_edit_therapy_purpose_duplicate(client, app):
             TherapyPurpose(
                 name="Первая цель",
                 output_value="первая",
-                order=1,
             ),
             TherapyPurpose(
                 name="Вторая цель",
                 output_value="вторая",
-                order=2,
             ),
         ]
 
@@ -294,7 +277,6 @@ def test_edit_therapy_purpose_duplicate(client, app):
         data={
             "name": "Вторая цель",
             "output_value": "изменённое значение",
-            "order": 3,
         },
         follow_redirects=True,
     )
@@ -307,7 +289,6 @@ def test_edit_therapy_purpose_duplicate(client, app):
 
         assert purpose.name == "Первая цель"
         assert purpose.output_value == "первая"
-        assert purpose.order == 1
 
 
 # Несуществующая цель терапии
@@ -335,7 +316,6 @@ def test_delete_therapy_purpose(client, app):
         purpose = TherapyPurpose(
             name="Тестовая цель",
             output_value="тест",
-            order=1,
         )
         db.session.add(purpose)
         db.session.commit()
@@ -371,7 +351,6 @@ def test_delete_used_therapy_purpose(client, app):
         purpose = TherapyPurpose(
             name="Используемая цель",
             output_value="тест",
-            order=1,
         )
 
         db.session.add_all([diary, purpose])

@@ -65,7 +65,6 @@ class VariableOption(db.Model):
     )
     value = db.Column(db.String(255), nullable=False)
     output_value = db.Column(db.String(255), nullable=False)
-    order = db.Column(db.Integer, nullable=False)
 
 
 class User(db.Model, UserMixin):
@@ -103,6 +102,12 @@ class Diary(db.Model):
         order_by="DiaryEntry.category_id",
     )
 
+    laboratory_source = db.relationship(
+        "LaboratorySource",
+        back_populates="diary",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
     __table_args__ = (
         db.UniqueConstraint(
             "user_id",
@@ -151,7 +156,6 @@ class TherapyPurpose(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), unique=True, nullable=False)
     output_value = db.Column(db.String(200), nullable=False)
-    order = db.Column(db.Integer, nullable=False, default=0)
 
 
 class TherapyGroup(db.Model):

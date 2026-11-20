@@ -16,11 +16,13 @@ def create_app(test_config=None):
     db.init_app(app)
 
     from app import models as models
+    import laboratory.models as laboratory_models
     from app.routes.auth import auth_bp
     from app.routes.categories import categories_bp
     from app.routes.therapy import therapy_bp
     from app.routes.diaries import diaries_bp
     from app.routes.diary_entries import diary_entries_bp
+    from laboratory.routes import laboratory_bp
 
     migrate.init_app(app, db)
 
@@ -32,5 +34,6 @@ def create_app(test_config=None):
     app.register_blueprint(therapy_bp)
     app.register_blueprint(diaries_bp)
     app.register_blueprint(diary_entries_bp)
+    app.register_blueprint(laboratory_bp)
 
     return app

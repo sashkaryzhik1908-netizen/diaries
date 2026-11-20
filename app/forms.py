@@ -2,7 +2,6 @@ from flask_wtf import FlaskForm
 
 from wtforms import (
     StringField,
-    IntegerField,
     TextAreaField,
     SubmitField,
     SelectField,
@@ -14,8 +13,6 @@ from wtforms.validators import (
     DataRequired,
     EqualTo,
     Length,
-    InputRequired,
-    NumberRange,
 )
 
 
@@ -124,13 +121,7 @@ class VariableOptionForm(FlaskForm):
             Length(max=255),
         ],
     )
-    order = IntegerField(
-        "Порядок отображения",
-        validators=[
-            InputRequired(),
-            NumberRange(min=0),
-        ],
-    )
+
     submit = SubmitField("Сохранить")
 
 
@@ -147,13 +138,6 @@ class TherapyPurposeForm(FlaskForm):
         validators=[
             DataRequired(),
             Length(max=200),
-        ],
-    )
-    order = IntegerField(
-        "Порядок отображения",
-        validators=[
-            InputRequired(),
-            NumberRange(min=0),
         ],
     )
     submit = SubmitField("Сохранить")

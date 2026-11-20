@@ -67,10 +67,8 @@ def fill_category(diary_id, category_id):
 
     if category.slug == "prescriptions":
         purposes = TherapyPurpose.query.order_by(
-            TherapyPurpose.order,
-            TherapyPurpose.id,
+            TherapyPurpose.name,
         ).all()
-
         medications = TherapyMedication.query.order_by(
             TherapyMedication.name,
         ).all()

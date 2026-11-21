@@ -61,7 +61,7 @@ def fill_category(diary_id, category_id):
 
     variables = (
         TemplateVariable.query.filter_by(category_id=category.id)
-        .order_by(TemplateVariable.id)
+        .order_by(TemplateVariable.order)
         .all()
     )
 

@@ -38,6 +38,7 @@ class TemplateVariable(db.Model):
     label = db.Column(db.String(150), nullable=False)
     field_type = db.Column(db.String(30), nullable=False)
     required = db.Column(db.Boolean, default=False, nullable=False)
+    order = db.Column(db.Integer, nullable=True, default=1)
 
     options = db.relationship(
         "VariableOption",

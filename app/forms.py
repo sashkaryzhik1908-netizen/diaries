@@ -7,6 +7,7 @@ from wtforms import (
     SelectField,
     BooleanField,
     PasswordField,
+    IntegerField
 )
 
 from wtforms.validators import (
@@ -103,6 +104,7 @@ class TemplateVariableForm(FlaskForm):
         validators=[DataRequired()],
     )
     required = BooleanField("Обязательное поле")
+    order = IntegerField("Порядок расположения при заполнении дневника", validators=[DataRequired()])
     submit = SubmitField("Сохранить")
 
 

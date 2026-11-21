@@ -9,7 +9,7 @@
     <br>
 
     <a href="{{ url_for('categories.edit_variable', variable_id=variable.id) }}"
-       class="btn btn-primary btn-sm">
+       class="btn btn-warning btn-sm">
         Редактировать переменную
     </a>
 
@@ -34,7 +34,7 @@
             {{ option.value }}
 
             <a href="{{ url_for('categories.edit_option', variable_id=variable.id, option_id=option.id) }}"
-               class="btn btn-primary btn-sm">
+               class="btn btn-warning btn-sm">
                 Редактировать опцию
             </a>
 

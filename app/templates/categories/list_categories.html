@@ -8,13 +8,11 @@
 </div><hr><br>
 {% for category in categories %}
   <div class="container">
-    
-      <a class="btn btn-outline-primary" href="{{ url_for('categories.edit_category', category_id=category.id) }}">Редактировать шаблон категории</a>
-    
     <h2>{{ category.name }}</h2>
     <p>{{ category.template }}</p>
-    <a href="{{ url_for('categories.view_category', category_id=category.id) }}">Редактировать переменые и опции</a>
-  <hr>
+    <a class="btn btn-warning" href="{{ url_for('categories.edit_category', category_id=category.id) }}">Редактировать шаблон категории</a>
+    <a class="btn btn-warning" href="{{ url_for('categories.view_category', category_id=category.id) }}">Редактировать переменые и опции</a>
+    <hr>
   </div>
 {% endfor %}
 {% endblock content %}

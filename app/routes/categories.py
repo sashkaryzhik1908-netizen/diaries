@@ -112,6 +112,7 @@ def add_variable(category_id):
             label=form.label.data,
             field_type=form.field_type.data,
             required=form.required.data,
+            order=form.order.data,
         )
 
         db.session.add(variable)
@@ -143,6 +144,7 @@ def edit_variable(variable_id):
         variable.label = form.label.data
         variable.field_type = form.field_type.data
         variable.required = form.required.data
+        variable.order = form.order.data
 
         db.session.commit()
 

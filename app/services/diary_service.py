@@ -233,6 +233,8 @@ def process_prescriptions(form):
             else:
                 lines.append(f"{number}. {group['name']}: {group['text']};")
 
+
+
         # Общие мероприятия интенсивной терапии
         lines.extend(
             [

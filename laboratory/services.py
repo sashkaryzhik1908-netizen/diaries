@@ -1,11 +1,13 @@
 import re
-
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-from datetime import datetime
 from collections import defaultdict
+from datetime import datetime
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
-from laboratory.parser import parse_laboratory_text
+from sqlalchemy import select
+
+from app.extensions import db
 from laboratory.models import LaboratoryIndicator
+from laboratory.parser import parse_laboratory_text
 
 
 def format_indicator_value(value, precision):
@@ -24,7 +26,7 @@ def format_indicator_value(value, precision):
 
     try:
         number = Decimal(match.group("number").replace(",", "."))
-        rounding = Decimal("1").scaleb(-precision)
+        rounding = Decimal(1).scaleb(-precision)
 
         rounded = number.quantize(
             rounding,
@@ -48,7 +50,8 @@ def format_laboratory_results(results):
     """Формирует текст лабораторных исследований в динамике."""
 
     indicators_from_db = {
-        indicator.id: indicator for indicator in LaboratoryIndicator.query.all()
+        indicator.id: indicator
+        for indicator in db.session.scalars(select(LaboratoryIndicator)).all()
     }
 
     indicator_order = {

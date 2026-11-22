@@ -3,7 +3,7 @@ import json
 from werkzeug.security import generate_password_hash
 
 from app.extensions import db
-from app.models import User, Diary, Category, TemplateVariable, DiaryEntry
+from app.models import Category, Diary, DiaryEntry, TemplateVariable, User
 
 
 # Создание тестового пользователя
@@ -328,7 +328,7 @@ def test_save_category_entry_commit_error(client, app, monkeypatch):
     login(client, "user1")
 
     def fail_commit():
-        raise Exception("Ошибка тестового сохранения")
+        raise RuntimeError("Ошибка тестового сохранения")
 
     monkeypatch.setattr(db.session, "commit", fail_commit)
 

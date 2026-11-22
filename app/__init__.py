@@ -1,7 +1,7 @@
 from flask import Flask
 
+from app.extensions import csrf, db, login_manager, migrate
 from config import Config
-from app.extensions import db, migrate, login_manager, csrf
 
 
 def create_app(test_config=None):
@@ -15,13 +15,13 @@ def create_app(test_config=None):
     csrf.init_app(app)
     db.init_app(app)
 
+    import laboratory.models as laboratory_models  # noqa: F401
     from app import models as models
-    import laboratory.models as laboratory_models
     from app.routes.auth import auth_bp
     from app.routes.categories import categories_bp
-    from app.routes.therapy import therapy_bp
     from app.routes.diaries import diaries_bp
     from app.routes.diary_entries import diary_entries_bp
+    from app.routes.therapy import therapy_bp
     from app.services.diary_service import to_local_time
     from laboratory.routes import laboratory_bp
 
@@ -43,6 +43,6 @@ def create_app(test_config=None):
 
     @app.context_processor
     def inject_utilities():
-        return dict(to_local_time=to_local_time)
+        return {"to_local_time": to_local_time}
 
     return app

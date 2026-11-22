@@ -1,9 +1,8 @@
+from flask import url_for
 from werkzeug.security import generate_password_hash
 
-from flask import url_for
-
 from app.extensions import db
-from app.models import User, Diary, Category, DiaryEntry
+from app.models import Category, Diary, DiaryEntry, User
 
 
 # Создание тестового пользователя
@@ -128,7 +127,7 @@ def test_user_sees_only_own_diaries(client, app):
 # Проверка запрета доступа к чужому дневнику
 def test_user_cannot_open_another_users_diary(client, app):
     with app.app_context():
-        user1 = create_user("user1")
+        create_user("user1")
         user2 = create_user("user2")
 
         diary = Diary(user_id=user2.id, number=1)
@@ -153,7 +152,7 @@ def test_create_diary_commit_error(client, app, monkeypatch):
     login(client, "user1")
 
     def fail_commit():
-        raise Exception("Ошибка тестового сохранения")
+        raise RuntimeError("Ошибка тестового сохранения")
 
     monkeypatch.setattr(db.session, "commit", fail_commit)
 
@@ -210,7 +209,7 @@ def test_delete_diary_commit_error(client, app, monkeypatch):
     login(client, "user1")
 
     def fail_commit():
-        raise Exception("Ошибка тестового удаления")
+        raise RuntimeError("Ошибка тестового сохранения")
 
     monkeypatch.setattr(db.session, "commit", fail_commit)
 

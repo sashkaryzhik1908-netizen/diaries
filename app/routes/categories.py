@@ -1,14 +1,15 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, flash, redirect, render_template, url_for
 from flask_login import login_required
+from sqlalchemy import func, select
 
 from app.decorators import admin_required
 from app.extensions import db
 from app.forms import CategoryForm, TemplateVariableForm, VariableOptionForm
 from app.models import (
     Category,
+    DiaryEntry,
     TemplateVariable,
     VariableOption,
-    DiaryEntry,
 )
 
 categories_bp = Blueprint("categories", __name__)
@@ -22,7 +23,7 @@ def add_category():
     form = CategoryForm()
 
     if form.validate_on_submit():
-        last_order = db.session.query(db.func.max(Category.order)).scalar() or 0
+        last_order = db.session.scalar(select(func.max(Category.order))) or 0
 
         category = Category(
             name=form.name.data,
@@ -46,7 +47,7 @@ def add_category():
 @login_required
 @admin_required
 def edit_category(category_id):
-    category = Category.query.get_or_404(category_id)
+    category = db.get_or_404(Category, category_id)
 
     form = CategoryForm(obj=category)
 
@@ -73,11 +74,11 @@ def edit_category(category_id):
 @login_required
 @admin_required
 def del_category(category_id):
-    category = Category.query.get_or_404(category_id)
+    category = db.get_or_404(Category, category_id)
 
-    existing_entries = DiaryEntry.query.filter_by(
-        category_id=category.id,
-    ).first()
+    existing_entries = db.session.scalar(
+        select(DiaryEntry).where(DiaryEntry.category_id == category.id)
+    )
 
     if existing_entries:
         flash(
@@ -102,7 +103,7 @@ def del_category(category_id):
 @login_required
 @admin_required
 def add_variable(category_id):
-    category = Category.query.get_or_404(category_id)
+    category = db.get_or_404(Category, category_id)
     form = TemplateVariableForm()
 
     if form.validate_on_submit():
@@ -136,7 +137,7 @@ def add_variable(category_id):
 @login_required
 @admin_required
 def edit_variable(variable_id):
-    variable = TemplateVariable.query.get_or_404(variable_id)
+    variable = db.get_or_404(TemplateVariable, variable_id)
     form = TemplateVariableForm(obj=variable)
 
     if form.validate_on_submit():
@@ -171,7 +172,7 @@ def edit_variable(variable_id):
 @login_required
 @admin_required
 def del_variable(variable_id):
-    variable = TemplateVariable.query.get_or_404(variable_id)
+    variable = db.get_or_404(TemplateVariable, variable_id)
 
     category_id = variable.category_id
 
@@ -190,7 +191,7 @@ def del_variable(variable_id):
 @login_required
 @admin_required
 def add_option(variable_id):
-    variable = TemplateVariable.query.get_or_404(variable_id)
+    variable = db.get_or_404(TemplateVariable, variable_id)
     form = VariableOptionForm()
 
     if form.validate_on_submit():
@@ -226,12 +227,14 @@ def add_option(variable_id):
 @login_required
 @admin_required
 def edit_option(variable_id, option_id):
-    variable = TemplateVariable.query.get_or_404(variable_id)
+    variable = db.get_or_404(TemplateVariable, variable_id)
 
-    option = VariableOption.query.filter_by(
-        id=option_id,
-        variable_id=variable_id,
-    ).first_or_404()
+    option = db.first_or_404(
+        select(VariableOption).where(
+            VariableOption.id == option_id,
+            VariableOption.variable_id == variable_id,
+        )
+    )
 
     form = VariableOptionForm(obj=option)
 
@@ -260,12 +263,14 @@ def edit_option(variable_id, option_id):
 @login_required
 @admin_required
 def delete_option(variable_id, option_id):
-    variable = TemplateVariable.query.get_or_404(variable_id)
+    variable = db.get_or_404(TemplateVariable, variable_id)
 
-    option = VariableOption.query.filter_by(
-        id=option_id,
-        variable_id=variable_id,
-    ).first_or_404()
+    option = db.first_or_404(
+        select(VariableOption).where(
+            VariableOption.id == option_id,
+            VariableOption.variable_id == variable_id,
+        )
+    )
 
     db.session.delete(option)
     db.session.commit()
@@ -279,7 +284,7 @@ def delete_option(variable_id, option_id):
 @login_required
 @admin_required
 def list_categories():
-    categories = Category.query.order_by(Category.order).all()
+    categories = db.session.scalars(select(Category).order_by(Category.order)).all()
 
     return render_template(
         "categories/list_categories.html",
@@ -292,13 +297,13 @@ def list_categories():
 @login_required
 @admin_required
 def view_category(category_id):
-    category = Category.query.get_or_404(category_id)
+    category = db.get_or_404(Category, category_id)
 
-    variables = (
-        TemplateVariable.query.filter_by(category_id=category.id)
+    variables = db.session.scalars(
+        select(TemplateVariable)
+        .where(TemplateVariable.category_id == category.id)
         .order_by(TemplateVariable.id)
-        .all()
-    )
+    ).all()
 
     return render_template(
         "categories/view_category.html",
@@ -312,13 +317,13 @@ def view_category(category_id):
 @login_required
 @admin_required
 def list_options(variable_id):
-    variable = TemplateVariable.query.get_or_404(variable_id)
+    variable = db.get_or_404(TemplateVariable, variable_id)
 
-    options = (
-        VariableOption.query.filter_by(variable_id=variable_id)
+    options = db.session.scalars(
+        select(VariableOption)
+        .where(VariableOption.variable_id == variable_id)
         .order_by(VariableOption.value)
-        .all()
-    )
+    ).all()
     return render_template(
         "categories/list_options.html",
         options=options,

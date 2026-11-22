@@ -1,8 +1,6 @@
 import pytest
 
-from laboratory.services import format_indicator_value
-
-from laboratory.services import generate_laboratory_text
+from laboratory.services import format_indicator_value, generate_laboratory_text
 
 
 @pytest.mark.parametrize(
@@ -125,7 +123,7 @@ def test_format_laboratory_results_groups_indicators(app):
 
         result = format_laboratory_results(results)
 
-        assert result == ("Б/х крови:\n" "АЛТ — 27 Ед/л;")
+        assert result == ("Б/х крови:\nАЛТ — 27 Ед/л;")
 
 
 def test_format_laboratory_results_rounds_values(app):
@@ -262,7 +260,7 @@ def test_format_laboratory_results_handles_unknown_indicator(app):
 
         result = format_laboratory_results(results)
 
-        assert result == ("Б/х крови:\n" "Неизвестный показатель — 10.5;")
+        assert result == ("Б/х крови:\nНеизвестный показатель — 10.5;")
 
 
 def test_format_laboratory_results_sorts_indicators_by_order(app):

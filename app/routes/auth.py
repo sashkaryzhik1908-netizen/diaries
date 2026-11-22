@@ -1,16 +1,16 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, flash, redirect, render_template, url_for
 from flask_login import (
-    login_user,
-    logout_user,
     current_user,
     login_required,
+    login_user,
+    logout_user,
 )
-
-from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import select
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db, login_manager
-from app.models import User, Diary
-from app.forms import RegisterForm, LoginForm, EditUserForm
+from app.forms import EditUserForm, LoginForm, RegisterForm
+from app.models import Diary, User
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -30,7 +30,7 @@ def register():
         username = form.username.data
         password = form.password.data
 
-        existing_user = User.query.filter_by(username=username).first()
+        existing_user = db.session.scalar(select(User).where(User.username == username))
 
         if existing_user:
             flash("Такое имя пользователя уже занято.", "warning")
@@ -43,6 +43,8 @@ def register():
 
         db.session.add(user)
         db.session.commit()
+
+        login_user(user)
 
         flash("Регистрация успешно завершена.", "success")
         return redirect(url_for("auth.index"))
@@ -58,11 +60,10 @@ def edit_user():
     form = EditUserForm(obj=user)
 
     if form.validate_on_submit():
-
         # Проверяем, занят ли логин другим пользователем
-        existing_user = User.query.filter_by(
-            username=form.username.data
-        ).first()
+        existing_user = db.session.scalar(
+            select(User).where(User.username == form.username.data)
+        )
 
         if existing_user and existing_user.id != user.id:
             flash("Это имя пользователя уже занято.", "danger")
@@ -81,6 +82,20 @@ def edit_user():
 
     return render_template("auth/edit_user.html", form=form)
 
+@auth_bp.route("/delete", methods=["POST"])
+@login_required
+def del_user():
+    user = current_user._get_current_object()
+
+    logout_user()
+
+    db.session.delete(user)
+    db.session.commit()
+
+    flash("Профиль удален", "success")
+    return redirect(url_for("auth.index"))
+
+
 
 # Вход
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -92,7 +107,7 @@ def login():
         username = form.username.data
         password = form.password.data
 
-        user = User.query.filter_by(username=username).first()
+        user = db.session.scalar(select(User).where(User.username == username))
 
         if user and check_password_hash(user.password, password):
             login_user(user)
@@ -122,8 +137,7 @@ def index():
 @auth_bp.route("/user")
 @login_required
 def user():
-    diaries = Diary.query.filter(Diary.user_id == current_user.id).all()
-    return render_template(
-        "auth/user.html",
-        user=current_user,
-        diaries=diaries)
+    diaries = db.session.scalars(
+        select(Diary).where(Diary.user_id == current_user.id)
+    ).all()
+    return render_template("auth/user.html", user=current_user, diaries=diaries)

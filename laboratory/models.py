@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app.extensions import db
 
@@ -22,14 +22,14 @@ class LaboratorySource(db.Model):
 
     created_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
         nullable=False,
     )
 
@@ -79,7 +79,7 @@ class LaboratoryIndicator(db.Model):
     code = db.Column(db.String(50), nullable=True)
     unit = db.Column(db.String(50), nullable=True)
 
-    precision = db.Column(db.Integer, nullable=True, default=None)
+    precision = db.Column(db.Integer, nullable=True)
 
     aliases = db.relationship(
         "LaboratoryAlias",

@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import UTC, datetime
+
+from flask_login import logout_user, UserMixin
+
 
 from app.extensions import db
-
-from flask_login import UserMixin
 
 
 # ___модели___
@@ -34,7 +35,7 @@ class TemplateVariable(db.Model):
         db.ForeignKey("category.id"),
         nullable=False,
     )
-    name = db.Column(db.String(100), nullable=False, unique=False)
+    name = db.Column(db.String(100), nullable=False)
     label = db.Column(db.String(150), nullable=False)
     field_type = db.Column(db.String(30), nullable=False)
     required = db.Column(db.Boolean, default=False, nullable=False)
@@ -75,7 +76,11 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(500), nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
-
+    diaries = db.relationship(
+        "Diary",
+        backref="user",
+        cascade="all, delete-orphan",
+    )
 
 class Diary(db.Model):
     __tablename__ = "diary"
@@ -92,7 +97,7 @@ class Diary(db.Model):
 
     created_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 

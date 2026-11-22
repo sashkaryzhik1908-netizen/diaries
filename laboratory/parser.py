@@ -1,10 +1,10 @@
 import re
-
 from decimal import Decimal, InvalidOperation
+
+from sqlalchemy import select
 
 from app.extensions import db
 from laboratory.models import LaboratoryIndicator
-
 
 DATE_PATTERN = re.compile(
     r"Дата завершения заказа:\s*(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2})"
@@ -160,12 +160,12 @@ def parse_indicator(raw_text, indicators, datetime):
 
 def parse_laboratory_text(source_text):
     """Разбирает исходный текст лабораторных исследований."""
-    from decimal import Decimal, InvalidOperation
-
     source_text = source_text.replace("\u200b", "")
     source_text = source_text.replace("\ufeff", "")
 
-    indicators = LaboratoryIndicator.query.join(LaboratoryIndicator.category).all()
+    indicators = db.session.scalars(
+        select(LaboratoryIndicator).join(LaboratoryIndicator.category)
+    ).all()
 
     results = []
     date_matches = list(DATE_PATTERN.finditer(source_text))

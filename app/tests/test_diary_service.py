@@ -1,13 +1,12 @@
 from werkzeug.datastructures import MultiDict
 
 from app.extensions import db
-
 from app.models import (
     Category,
     TemplateVariable,
-    VariableOption,
-    TherapyPurpose,
     TherapyMedication,
+    TherapyPurpose,
+    VariableOption,
 )
 from app.services.diary_service import (
     process_category_form,
@@ -252,7 +251,7 @@ def test_process_invalid_multiselect_id(app):
             }
         )
 
-        values, errors = process_category_form(
+        _values, errors = process_category_form(
             form,
             [variable],
             category,
@@ -284,7 +283,7 @@ def test_process_duplicate_multiselect_ids(app):
             }
         )
 
-        values, errors = process_category_form(
+        _values, errors = process_category_form(
             form,
             [variable],
             category,
@@ -317,7 +316,7 @@ def test_process_prescriptions(app):
                 "dose[0][]": ["100 мг"],
                 "unit[0][]": ["мг"],
                 "administration_method[0]": "внутривенно",
-                "frequency[0]": "2 р/д",
+                "frequency[0]": "2 р/сут",
                 "start_date[0]": "2026-11-16",
             }
         )
@@ -328,7 +327,7 @@ def test_process_prescriptions(app):
         assert generated_text is not None
         assert "Препарат 100 мг" in generated_text
         assert "внутривенно" in generated_text
-        assert "2 р/д" in generated_text
+        assert "2 р/сут" in generated_text
         assert "с 16.11.2026" in generated_text
 
 
@@ -502,7 +501,7 @@ def test_process_category_form_multiselect_foreign_option(app):
             ]
         )
 
-        values, errors = process_category_form(
+        _values, errors = process_category_form(
             form,
             [variable],
             category,
@@ -807,7 +806,7 @@ def test_process_prescriptions_invalid_date(app):
                 ("dose[0][]", "1 г"),
                 ("unit[0][]", "гр"),
                 ("administration_method[0]", "внутривенно"),
-                ("frequency[0]", "1 р/д"),
+                ("frequency[0]", "1 р/сут"),
                 ("start_date[0]", "не дата"),
             ]
         )

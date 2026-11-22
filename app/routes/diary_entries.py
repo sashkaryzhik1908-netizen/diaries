@@ -3,28 +3,28 @@ import json
 from flask import (
     Blueprint,
     current_app,
-    render_template,
-    redirect,
-    url_for,
-    request,
     flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
 )
-from flask_login import login_required, current_user
+from flask_login import current_user, login_required
+from sqlalchemy import func, select
 
 from app.extensions import db
 from app.models import (
     Category,
-    TemplateVariable,
     Diary,
     DiaryEntry,
-    TherapyPurpose,
+    TemplateVariable,
     TherapyMedication,
+    TherapyPurpose,
 )
 from app.services.diary_service import (
-    process_prescriptions,
     process_category_form,
+    process_prescriptions,
 )
-
 
 diary_entries_bp = Blueprint("diary_entries", __name__)
 
@@ -36,18 +36,21 @@ diary_entries_bp = Blueprint("diary_entries", __name__)
 )
 @login_required
 def fill_category(diary_id, category_id):
-    diary = Diary.query.filter_by(
-        id=diary_id,
-        user_id=current_user.id,
-    ).first_or_404()
+    diary = db.first_or_404(
+        select(Diary).where(
+            Diary.id == diary_id,
+            Diary.user_id == current_user.id,
+        )
+    )
 
-    category = Category.query.get_or_404(category_id)
+    category = db.get_or_404(Category, category_id)
 
-    entry = DiaryEntry.query.filter_by(
-        diary_id=diary.id,
-        category_id=category.id,
-    ).first()
-
+    entry = db.session.scalar(
+        select(DiaryEntry).where(
+            DiaryEntry.diary_id == diary.id,
+            DiaryEntry.category_id == category.id,
+        )
+    )
     # Загружаем ранее сохранённые данные формы
     try:
         form_data = json.loads(entry.form_data) if entry and entry.form_data else {}
@@ -59,19 +62,21 @@ def fill_category(diary_id, category_id):
     errors = []
     generated_text = None
 
-    variables = (
-        TemplateVariable.query.filter_by(category_id=category.id)
+    variables = db.session.scalars(
+        select(TemplateVariable)
+        .where(TemplateVariable.category_id == category.id)
         .order_by(TemplateVariable.order)
-        .all()
-    )
+    ).all()
 
     if category.slug == "prescriptions":
-        purposes = TherapyPurpose.query.order_by(
-            TherapyPurpose.name,
+        purposes = db.session.scalars(
+            select(TherapyPurpose).order_by(TherapyPurpose.name)
         ).all()
-        medications = TherapyMedication.query.order_by(
-            TherapyMedication.name,
+
+        medications = db.session.scalars(
+            select(TherapyMedication).order_by(TherapyMedication.name)
         ).all()
+
     else:
         purposes = []
         medications = []
@@ -107,9 +112,13 @@ def fill_category(diary_id, category_id):
                 )
 
             else:
-                last_position = max(
-                    (item.position for item in diary.entries),
-                    default=-1,
+                last_position = (
+                    db.session.scalar(
+                        select(func.max(DiaryEntry.position)).where(
+                            DiaryEntry.diary_id == diary.id
+                        )
+                    )
+                    or -1
                 )
 
                 entry = DiaryEntry(

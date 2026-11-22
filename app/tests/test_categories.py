@@ -2,12 +2,12 @@ from werkzeug.security import generate_password_hash
 
 from app.extensions import db
 from app.models import (
-    User,
     Category,
-    TemplateVariable,
-    VariableOption,
-    DiaryEntry,
     Diary,
+    DiaryEntry,
+    TemplateVariable,
+    User,
+    VariableOption,
 )
 
 
@@ -364,6 +364,7 @@ def test_add_variable(client, app):
             "label": "Жалобы пациента",
             "field_type": "text",
             "required": "y",
+            "order": 1,
             "submit": "Сохранить",
         },
         follow_redirects=True,

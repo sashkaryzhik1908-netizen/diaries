@@ -1,10 +1,12 @@
-from datetime import datetime
-from datetime import timezone
+from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import select
+
+from app.extensions import db
 from app.models import (
-    TherapyPurpose,
     TherapyMedication,
+    TherapyPurpose,
     VariableOption,
 )
 
@@ -13,10 +15,13 @@ LOCAL_TIMEZONE = ZoneInfo("Asia/Almaty")
 
 def to_local_time(dt):
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt.astimezone(LOCAL_TIMEZONE)
 
+
 # Обработка назначений
+
+
 def process_prescriptions(form):
     errors = []
 
@@ -48,11 +53,14 @@ def process_prescriptions(form):
         "через назогастральный зонд",
         "ингаляционно",
         "наружно",
-        "внутривенно, путём микроструйной перфузионной подачи, под контролем показателей гемодинамики с целевым срАД не менее 65 мм рт.ст",
+        (
+            "внутривенно, путём микроструйной перфузионной подачи, "
+            "под контролем показателей гемодинамики с целевым срАД не менее 65 мм рт.ст"
+        ),
     }
 
     allowed_frequencies = {
-        *(f"{number} р/д" for number in range(1, 11)),
+        *(f"{number} р/сут" for number in range(1, 11)),
         "непрерывно",
         "по показаниям",
     }
@@ -61,7 +69,7 @@ def process_prescriptions(form):
     group_indexes = sorted(
         {
             key[len("purpose_id[") : -1]
-            for key in form.keys()
+            for key in form
             if key.startswith("purpose_id[")
             and key.endswith("]")
             and key[len("purpose_id[") : -1].isdigit()
@@ -91,18 +99,19 @@ def process_prescriptions(form):
 
     purposes_dict = {
         purpose.id: purpose
-        for purpose in TherapyPurpose.query.filter(
-            TherapyPurpose.id.in_(purpose_ids_int)
+        for purpose in db.session.scalars(
+            select(TherapyPurpose).where(TherapyPurpose.id.in_(purpose_ids_int))
         ).all()
     }
 
     medications_dict = {
         medication.id: medication
-        for medication in TherapyMedication.query.filter(
-            TherapyMedication.id.in_(medication_ids_int)
+        for medication in db.session.scalars(
+            select(TherapyMedication).where(
+                TherapyMedication.id.in_(medication_ids_int)
+            )
         ).all()
     }
-
     groups = []
 
     for index in group_indexes:
@@ -242,16 +251,18 @@ def process_prescriptions(form):
             else:
                 lines.append(f"{number}. {group['name']}: {group['text']};")
 
-
-
         # Общие мероприятия интенсивной терапии
         lines.extend(
             [
-                f"{len(groups) + 3}. Мониторинг витальных функций: "
-                "АД, ЧСС/пульс, сатурация О2, почасовой диурез, "
-                "Т-тела, ЭКГ-мониторинг во II отведении 3-мя электродами;",
-                f"{len(groups) + 4}. Мероприятия общего ухода, "
-                "суточный мониторинг, контроль лабораторных данных.",
+                (
+                    f"{len(groups) + 3}. Мониторинг витальных функций: "
+                    "АД, ЧСС/пульс, сатурация О2, почасовой диурез, "
+                    "Т-тела, ЭКГ-мониторинг во II отведении 3-мя электродами;"
+                ),
+                (
+                    f"{len(groups) + 4}. Мероприятия общего ухода, "
+                    "суточный мониторинг, контроль лабораторных данных."
+                ),
             ]
         )
 
@@ -287,9 +298,13 @@ def process_category_form(form, variables, category):
                 values[variable.name] = ""
                 continue
 
-            selected_options = VariableOption.query.filter(
-                VariableOption.variable_id == variable.id,
-                VariableOption.id.in_([int(option_id) for option_id in selected_ids]),
+            selected_options = db.session.scalars(
+                select(VariableOption).where(
+                    VariableOption.variable_id == variable.id,
+                    VariableOption.id.in_(
+                        [int(option_id) for option_id in selected_ids]
+                    ),
+                )
             ).all()
 
             options = {str(option.id): option for option in selected_options}
@@ -376,9 +391,8 @@ def process_category_form(form, variables, category):
                 "",
             ).strip()
 
-        if variable.required and not values[variable.name]:
-            if variable.name != "dose":
-                errors.append(f"Заполните поле «{variable.label}».")
+        if variable.required and not values[variable.name] and variable.name != "dose":
+            errors.append(f"Заполните поле «{variable.label}».")
 
     # Старое общее поле дозировки больше не используется
     if any(variable.name == "drug" for variable in variables):

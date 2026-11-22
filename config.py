@@ -2,7 +2,6 @@ import os
 
 from dotenv import load_dotenv
 
-
 load_dotenv()
 
 
@@ -11,7 +10,7 @@ class Config:
 
     if not SECRET_KEY:
         raise RuntimeError(
-            "Не задан SECRET_KEY. Создайте файл .env " "на основе .env.example."
+            "Не задан SECRET_KEY. Создайте файл .env на основе .env.example."
         )
 
     SQLALCHEMY_DATABASE_URI = "sqlite:///database.db"

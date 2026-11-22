@@ -1,25 +1,22 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, current_app
-from flask_login import login_required, current_user
+from flask import Blueprint, current_app, flash, redirect, render_template, url_for
+from flask_login import current_user, login_required
+from sqlalchemy import select
 
-from app.extensions import db
 from app.decorators import admin_required
-
+from app.extensions import db
 from app.models import Diary
-
-from laboratory.models import (
-    LaboratorySource,
-    LaboratoryCategory,
-    LaboratoryIndicator,
-    LaboratoryAlias,
-)
-
 from laboratory.forms import (
-    LaboratorySourceForm,
+    LaboratoryAliasForm,
     LaboratoryCategoryForm,
     LaboratoryIndicatorForm,
-    LaboratoryAliasForm,
+    LaboratorySourceForm,
 )
-
+from laboratory.models import (
+    LaboratoryAlias,
+    LaboratoryCategory,
+    LaboratoryIndicator,
+    LaboratorySource,
+)
 from laboratory.services import generate_laboratory_text
 
 laboratory_bp = Blueprint(
@@ -39,7 +36,9 @@ laboratory_bp = Blueprint(
 @admin_required
 def list_categories():
     """Список категорий лабораторных исследований."""
-    categories = LaboratoryCategory.query.order_by(LaboratoryCategory.name).all()
+    categories = db.session.scalars(
+        select(LaboratoryCategory).order_by(LaboratoryCategory.name)
+    ).all()
 
     return render_template(
         "laboratory/list_categories.html",
@@ -52,13 +51,13 @@ def list_categories():
 @admin_required
 def view_category(category_id):
     """Просмотр категории и её показателей."""
-    category = LaboratoryCategory.query.get_or_404(category_id)
+    category = db.get_or_404(LaboratoryCategory, category_id)
 
-    indicators = (
-        LaboratoryIndicator.query.filter_by(category_id=category.id)
+    indicators = db.session.scalars(
+        select(LaboratoryIndicator)
+        .where(LaboratoryIndicator.category_id == category.id)
         .order_by(LaboratoryIndicator.name)
-        .all()
-    )
+    ).all()
 
     return render_template(
         "laboratory/view_category.html",
@@ -106,7 +105,7 @@ def add_category():
 @admin_required
 def edit_category(category_id):
     """Редактирование категории лабораторных исследований."""
-    category = LaboratoryCategory.query.get_or_404(category_id)
+    category = db.get_or_404(LaboratoryCategory, category_id)
     form = LaboratoryCategoryForm(obj=category)
 
     if form.validate_on_submit():
@@ -139,7 +138,7 @@ def edit_category(category_id):
 @admin_required
 def delete_category(category_id):
     """Удаление категории лабораторных исследований."""
-    category = LaboratoryCategory.query.get_or_404(category_id)
+    category = db.get_or_404(LaboratoryCategory, category_id)
 
     db.session.delete(category)
     db.session.commit()
@@ -162,10 +161,12 @@ def delete_category(category_id):
 @admin_required
 def add_indicator(category_id):
     """Добавление лабораторного показателя."""
-    category = LaboratoryCategory.query.get_or_404(category_id)
+    category = db.get_or_404(LaboratoryCategory, category_id)
     form = LaboratoryIndicatorForm()
 
-    categories = LaboratoryCategory.query.order_by(LaboratoryCategory.name).all()
+    categories = db.session.scalars(
+        select(LaboratoryCategory).order_by(LaboratoryCategory.name)
+    ).all()
 
     form.category_id.choices = [(item.id, item.name) for item in categories]
 
@@ -208,10 +209,12 @@ def add_indicator(category_id):
 @admin_required
 def edit_indicator(indicator_id):
     """Редактирование лабораторного показателя."""
-    indicator = LaboratoryIndicator.query.get_or_404(indicator_id)
+    indicator = db.get_or_404(LaboratoryIndicator, indicator_id)
     form = LaboratoryIndicatorForm(obj=indicator)
 
-    categories = LaboratoryCategory.query.order_by(LaboratoryCategory.name).all()
+    categories = db.session.scalars(
+        select(LaboratoryCategory).order_by(LaboratoryCategory.name)
+    ).all()
 
     form.category_id.choices = [(item.id, item.name) for item in categories]
 
@@ -250,7 +253,7 @@ def edit_indicator(indicator_id):
 @admin_required
 def delete_indicator(indicator_id):
     """Удаление лабораторного показателя."""
-    indicator = LaboratoryIndicator.query.get_or_404(indicator_id)
+    indicator = db.get_or_404(LaboratoryIndicator, indicator_id)
     category_id = indicator.category_id
 
     db.session.delete(indicator)
@@ -278,13 +281,13 @@ def delete_indicator(indicator_id):
 @admin_required
 def list_aliases(indicator_id):
     """Список альтернативных названий показателя."""
-    indicator = LaboratoryIndicator.query.get_or_404(indicator_id)
+    indicator = db.get_or_404(LaboratoryIndicator, indicator_id)
 
-    aliases = (
-        LaboratoryAlias.query.filter_by(indicator_id=indicator.id)
+    aliases = db.session.scalars(
+        select(LaboratoryAlias)
+        .where(LaboratoryAlias.indicator_id == indicator.id)
         .order_by(LaboratoryAlias.alias)
-        .all()
-    )
+    ).all()
 
     return render_template(
         "laboratory/list_aliases.html",
@@ -301,10 +304,12 @@ def list_aliases(indicator_id):
 @admin_required
 def add_alias(indicator_id):
     """Добавление альтернативного названия показателя."""
-    indicator = LaboratoryIndicator.query.get_or_404(indicator_id)
+    indicator = db.get_or_404(LaboratoryIndicator, indicator_id)
     form = LaboratoryAliasForm()
 
-    indicators = LaboratoryIndicator.query.order_by(LaboratoryIndicator.name).all()
+    indicators = db.session.scalars(
+        select(LaboratoryIndicator).order_by(LaboratoryIndicator.name)
+    ).all()
 
     form.indicator_id.choices = [(item.id, item.name) for item in indicators]
 
@@ -344,15 +349,20 @@ def add_alias(indicator_id):
 @admin_required
 def edit_alias(alias_id):
     """Редактирование альтернативного названия показателя."""
-    alias = LaboratoryAlias.query.get_or_404(alias_id)
+    alias = db.get_or_404(LaboratoryAlias, alias_id)
     form = LaboratoryAliasForm(obj=alias)
 
-    indicators = LaboratoryIndicator.query.order_by(LaboratoryIndicator.name).all()
+    indicators = db.session.scalars(
+        select(LaboratoryIndicator).order_by(LaboratoryIndicator.name)
+    ).all()
 
     form.indicator_id.choices = [(item.id, item.name) for item in indicators]
 
     if form.validate_on_submit():
-        target_indicator = LaboratoryIndicator.query.get_or_404(form.indicator_id.data)
+        target_indicator = db.get_or_404(
+            LaboratoryIndicator,
+            form.indicator_id.data,
+        )
 
         alias.indicator_id = target_indicator.id
         alias.alias = form.alias.data
@@ -383,7 +393,7 @@ def edit_alias(alias_id):
 @admin_required
 def delete_alias(alias_id):
     """Удаление альтернативного названия показателя."""
-    alias = LaboratoryAlias.query.get_or_404(alias_id)
+    alias = db.get_or_404(LaboratoryAlias, alias_id)
     indicator_id = alias.indicator_id
 
     db.session.delete(alias)
@@ -412,10 +422,12 @@ def delete_alias(alias_id):
 def diary_laboratory(diary_id):
     """Заполнение лабораторных исследований для дневника."""
 
-    diary = Diary.query.filter_by(
-        id=diary_id,
-        user_id=current_user.id,
-    ).first_or_404()
+    diary = db.first_or_404(
+        select(Diary).where(
+            Diary.id == diary_id,
+            Diary.user_id == current_user.id,
+        )
+    )
 
     source = diary.laboratory_source
 

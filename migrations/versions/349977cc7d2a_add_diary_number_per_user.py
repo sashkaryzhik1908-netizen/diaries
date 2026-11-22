@@ -4,9 +4,8 @@ Revision ID: YOUR_REVISION_ID
 Revises: 879fb146899e
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision = "349977cc7d2a"
 down_revision = "879fb146899e"

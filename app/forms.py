@@ -1,15 +1,13 @@
 from flask_wtf import FlaskForm
-
 from wtforms import (
-    StringField,
-    TextAreaField,
-    SubmitField,
-    SelectField,
     BooleanField,
+    IntegerField,
     PasswordField,
-    IntegerField
+    SelectField,
+    StringField,
+    SubmitField,
+    TextAreaField,
 )
-
 from wtforms.validators import (
     DataRequired,
     EqualTo,
@@ -139,9 +137,8 @@ class TemplateVariableForm(FlaskForm):
     )
     required = BooleanField("Обязательное поле")
     order = IntegerField(
-        "Порядок расположения при заполнении дневника",
-        validators=[
-            DataRequired()])
+        "Порядок расположения при заполнении дневника", validators=[DataRequired()]
+    )
     submit = SubmitField("Сохранить")
 
 

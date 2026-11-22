@@ -1,11 +1,12 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, flash, redirect, render_template, url_for
 from flask_login import login_required
 from flask_wtf import FlaskForm
+from sqlalchemy import select
 
-from app.extensions import db
-from app.forms import TherapyPurposeForm, TherapyMedicationForm
-from app.models import TherapyPurpose, TherapyGroup, TherapyMedication
 from app.decorators import admin_required
+from app.extensions import db
+from app.forms import TherapyMedicationForm, TherapyPurposeForm
+from app.models import TherapyGroup, TherapyMedication, TherapyPurpose
 
 therapy_bp = Blueprint("therapy", __name__)
 
@@ -15,9 +16,10 @@ therapy_bp = Blueprint("therapy", __name__)
 @login_required
 @admin_required
 def list_therapy_purposes():
-    purposes = TherapyPurpose.query.order_by(
-        TherapyPurpose.name,
+    purposes = db.session.scalars(
+        select(TherapyPurpose).order_by(TherapyPurpose.name)
     ).all()
+
     delete_form = FlaskForm()
 
     return render_template(
@@ -37,9 +39,9 @@ def add_therapy_purpose():
     if form.validate_on_submit():
         name = form.name.data.strip()
 
-        existing_purpose = TherapyPurpose.query.filter_by(
-            name=name,
-        ).first()
+        existing_purpose = db.session.scalar(
+            select(TherapyPurpose).where(TherapyPurpose.name == name)
+        )
 
         if existing_purpose:
             flash("Такая цель терапии уже существует.", "warning")
@@ -74,16 +76,19 @@ def add_therapy_purpose():
 @login_required
 @admin_required
 def edit_therapy_purpose(purpose_id):
-    purpose = TherapyPurpose.query.get_or_404(purpose_id)
+    purpose = db.get_or_404(TherapyPurpose, purpose_id)
+
     form = TherapyPurposeForm(obj=purpose)
 
     if form.validate_on_submit():
         name = form.name.data.strip()
 
-        existing_purpose = TherapyPurpose.query.filter(
-            TherapyPurpose.name == name,
-            TherapyPurpose.id != purpose.id,
-        ).first()
+        existing_purpose = db.session.scalar(
+            select(TherapyPurpose).where(
+                TherapyPurpose.name == name,
+                TherapyPurpose.id != purpose.id,
+            )
+        )
 
         if existing_purpose:
             flash("Такая цель терапии уже существует.", "warning")
@@ -117,11 +122,11 @@ def edit_therapy_purpose(purpose_id):
 @login_required
 @admin_required
 def delete_therapy_purpose(purpose_id):
-    purpose = TherapyPurpose.query.get_or_404(purpose_id)
+    purpose = db.get_or_404(TherapyPurpose, purpose_id)
 
-    therapy_group = TherapyGroup.query.filter_by(
-        purpose_id=purpose.id,
-    ).first()
+    therapy_group = db.session.scalar(
+        select(TherapyGroup).where(TherapyGroup.purpose_id == purpose.id)
+    )
 
     if therapy_group:
         flash(
@@ -142,7 +147,9 @@ def delete_therapy_purpose(purpose_id):
 @login_required
 @admin_required
 def list_therapy_medications():
-    medications = TherapyMedication.query.order_by(TherapyMedication.name).all()
+    medications = db.session.scalars(
+        select(TherapyMedication).order_by(TherapyMedication.name)
+    ).all()
 
     delete_form = FlaskForm()
 
@@ -163,9 +170,9 @@ def add_therapy_medication():
     if form.validate_on_submit():
         name = form.name.data.strip()
 
-        existing_medication = TherapyMedication.query.filter_by(
-            name=name,
-        ).first()
+        existing_medication = db.session.scalar(
+            select(TherapyMedication).where(TherapyMedication.name == name)
+        )
 
         if existing_medication:
             flash(
@@ -200,16 +207,18 @@ def add_therapy_medication():
 @login_required
 @admin_required
 def edit_therapy_medication(medication_id):
-    medication = TherapyMedication.query.get_or_404(medication_id)
+    medication = db.get_or_404(TherapyMedication, medication_id)
     form = TherapyMedicationForm(obj=medication)
 
     if form.validate_on_submit():
         name = form.name.data.strip()
 
-        existing_medication = TherapyMedication.query.filter(
-            TherapyMedication.name == name,
-            TherapyMedication.id != medication.id,
-        ).first()
+        existing_medication = db.session.scalar(
+            select(TherapyMedication).where(
+                TherapyMedication.name == name,
+                TherapyMedication.id != medication.id,
+            )
+        )
 
         if existing_medication:
             flash(
@@ -245,7 +254,7 @@ def edit_therapy_medication(medication_id):
 @login_required
 @admin_required
 def delete_therapy_medication(medication_id):
-    medication = TherapyMedication.query.get_or_404(medication_id)
+    medication = db.get_or_404(TherapyMedication, medication_id)
 
     db.session.delete(medication)
     db.session.commit()

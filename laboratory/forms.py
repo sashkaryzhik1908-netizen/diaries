@@ -1,8 +1,6 @@
 from flask_wtf import FlaskForm
-
-from wtforms import StringField, SelectField, TextAreaField, SubmitField, IntegerField
-
-from wtforms.validators import DataRequired, Length, Optional, NumberRange
+from wtforms import IntegerField, SelectField, StringField, SubmitField, TextAreaField
+from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 
 class LaboratoryCategoryForm(FlaskForm):

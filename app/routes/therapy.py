@@ -1,12 +1,12 @@
 from flask import Blueprint, flash, redirect, render_template, url_for
 from flask_login import login_required
 from flask_wtf import FlaskForm
-from sqlalchemy import select
 
 from app.decorators import admin_required
 from app.extensions import db
 from app.forms import TherapyMedicationForm, TherapyPurposeForm
-from app.models import TherapyGroup, TherapyMedication, TherapyPurpose
+from app.models import TherapyMedication, TherapyPurpose
+from app.services import therapy_service
 
 therapy_bp = Blueprint("therapy", __name__)
 
@@ -16,9 +16,7 @@ therapy_bp = Blueprint("therapy", __name__)
 @login_required
 @admin_required
 def list_therapy_purposes():
-    purposes = db.session.scalars(
-        select(TherapyPurpose).order_by(TherapyPurpose.name)
-    ).all()
+    purposes = therapy_service.get_therapy_purposes()
 
     delete_form = FlaskForm()
 
@@ -38,10 +36,9 @@ def add_therapy_purpose():
 
     if form.validate_on_submit():
         name = form.name.data.strip()
+        output_value = form.output_value.data.strip()
 
-        existing_purpose = db.session.scalar(
-            select(TherapyPurpose).where(TherapyPurpose.name == name)
-        )
+        existing_purpose = therapy_service.get_existing_purpose(name)
 
         if existing_purpose:
             flash("Такая цель терапии уже существует.", "warning")
@@ -51,13 +48,10 @@ def add_therapy_purpose():
                 form=form,
             )
 
-        purpose = TherapyPurpose(
+        therapy_service.create_therapy_purpose(
             name=name,
-            output_value=form.output_value.data.strip(),
+            output_value=output_value,
         )
-
-        db.session.add(purpose)
-        db.session.commit()
 
         flash("Цель терапии добавлена.", "success")
         return redirect(url_for("therapy.list_therapy_purposes"))
@@ -82,12 +76,11 @@ def edit_therapy_purpose(purpose_id):
 
     if form.validate_on_submit():
         name = form.name.data.strip()
+        output_value = form.output_value.data.strip()
 
-        existing_purpose = db.session.scalar(
-            select(TherapyPurpose).where(
-                TherapyPurpose.name == name,
-                TherapyPurpose.id != purpose.id,
-            )
+        existing_purpose = therapy_service.get_existing_purpose(
+            name,
+            exclude_id=purpose.id,
         )
 
         if existing_purpose:
@@ -99,10 +92,11 @@ def edit_therapy_purpose(purpose_id):
                 purpose=purpose,
             )
 
-        purpose.name = name
-        purpose.output_value = form.output_value.data.strip()
-
-        db.session.commit()
+        therapy_service.update_therapy_purpose(
+            purpose=purpose,
+            name=name,
+            output_value=output_value,
+        )
 
         flash("Цель терапии успешно изменена.", "success")
         return redirect(url_for("therapy.list_therapy_purposes"))
@@ -124,19 +118,14 @@ def edit_therapy_purpose(purpose_id):
 def delete_therapy_purpose(purpose_id):
     purpose = db.get_or_404(TherapyPurpose, purpose_id)
 
-    therapy_group = db.session.scalar(
-        select(TherapyGroup).where(TherapyGroup.purpose_id == purpose.id)
-    )
-
-    if therapy_group:
+    if therapy_service.is_purpose_used(purpose.id):
         flash(
             "Нельзя удалить цель терапии, которая используется в дневнике.",
             "warning",
         )
         return redirect(url_for("therapy.list_therapy_purposes"))
 
-    db.session.delete(purpose)
-    db.session.commit()
+    therapy_service.delete_therapy_purpose(purpose)
 
     flash("Цель терапии удалена.", "success")
     return redirect(url_for("therapy.list_therapy_purposes"))
@@ -147,9 +136,7 @@ def delete_therapy_purpose(purpose_id):
 @login_required
 @admin_required
 def list_therapy_medications():
-    medications = db.session.scalars(
-        select(TherapyMedication).order_by(TherapyMedication.name)
-    ).all()
+    medications = therapy_service.get_therapy_medications()
 
     delete_form = FlaskForm()
 
@@ -170,9 +157,7 @@ def add_therapy_medication():
     if form.validate_on_submit():
         name = form.name.data.strip()
 
-        existing_medication = db.session.scalar(
-            select(TherapyMedication).where(TherapyMedication.name == name)
-        )
+        existing_medication = therapy_service.get_existing_medication(name)
 
         if existing_medication:
             flash(
@@ -185,10 +170,7 @@ def add_therapy_medication():
                 form=form,
             )
 
-        medication = TherapyMedication(name=name)
-
-        db.session.add(medication)
-        db.session.commit()
+        therapy_service.create_therapy_medication(name)
 
         flash("Препарат успешно добавлен.", "success")
         return redirect(url_for("therapy.list_therapy_medications"))
@@ -208,16 +190,15 @@ def add_therapy_medication():
 @admin_required
 def edit_therapy_medication(medication_id):
     medication = db.get_or_404(TherapyMedication, medication_id)
+
     form = TherapyMedicationForm(obj=medication)
 
     if form.validate_on_submit():
         name = form.name.data.strip()
 
-        existing_medication = db.session.scalar(
-            select(TherapyMedication).where(
-                TherapyMedication.name == name,
-                TherapyMedication.id != medication.id,
-            )
+        existing_medication = therapy_service.get_existing_medication(
+            name,
+            exclude_id=medication.id,
         )
 
         if existing_medication:
@@ -232,9 +213,10 @@ def edit_therapy_medication(medication_id):
                 medication=medication,
             )
 
-        medication.name = name
-
-        db.session.commit()
+        therapy_service.update_therapy_medication(
+            medication=medication,
+            name=name,
+        )
 
         flash("Название препарата изменено.", "success")
         return redirect(url_for("therapy.list_therapy_medications"))
@@ -256,8 +238,7 @@ def edit_therapy_medication(medication_id):
 def delete_therapy_medication(medication_id):
     medication = db.get_or_404(TherapyMedication, medication_id)
 
-    db.session.delete(medication)
-    db.session.commit()
+    therapy_service.delete_therapy_medication(medication)
 
     flash("Препарат удалён из справочника.", "success")
     return redirect(url_for("therapy.list_therapy_medications"))

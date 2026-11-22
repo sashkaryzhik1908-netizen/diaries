@@ -10,21 +10,22 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
-from sqlalchemy import func, select
 
 from app.extensions import db
-from app.models import (
-    Category,
-    Diary,
-    DiaryEntry,
-    TemplateVariable,
-    TherapyMedication,
-    TherapyPurpose,
-)
+from app.services.category_form_service import process_category_form
 from app.services.diary_service import (
-    process_category_form,
-    process_prescriptions,
+    create_diary_entry,
+    generate_category_text,
+    get_category,
+    get_category_variables,
+    get_diary_entry,
+    get_diary_for_user,
+    get_therapy_medications,
+    get_therapy_purposes,
+    save_diary_entry,
+    update_diary_entry,
 )
+from app.services.prescriptions_service import process_prescriptions
 
 diary_entries_bp = Blueprint("diary_entries", __name__)
 
@@ -36,21 +37,12 @@ diary_entries_bp = Blueprint("diary_entries", __name__)
 )
 @login_required
 def fill_category(diary_id, category_id):
-    diary = db.first_or_404(
-        select(Diary).where(
-            Diary.id == diary_id,
-            Diary.user_id == current_user.id,
-        )
-    )
+    diary = get_diary_for_user(diary_id, current_user.id)
 
-    category = db.get_or_404(Category, category_id)
+    category = get_category(category_id)
 
-    entry = db.session.scalar(
-        select(DiaryEntry).where(
-            DiaryEntry.diary_id == diary.id,
-            DiaryEntry.category_id == category.id,
-        )
-    )
+    entry = get_diary_entry(diary.id, category.id)
+
     # Загружаем ранее сохранённые данные формы
     try:
         form_data = json.loads(entry.form_data) if entry and entry.form_data else {}
@@ -62,20 +54,12 @@ def fill_category(diary_id, category_id):
     errors = []
     generated_text = None
 
-    variables = db.session.scalars(
-        select(TemplateVariable)
-        .where(TemplateVariable.category_id == category.id)
-        .order_by(TemplateVariable.order)
-    ).all()
+    variables = get_category_variables(category.id)
 
     if category.slug == "prescriptions":
-        purposes = db.session.scalars(
-            select(TherapyPurpose).order_by(TherapyPurpose.name)
-        ).all()
+        purposes = get_therapy_purposes()
 
-        medications = db.session.scalars(
-            select(TherapyMedication).order_by(TherapyMedication.name)
-        ).all()
+        medications = get_therapy_medications()
 
     else:
         purposes = []
@@ -97,46 +81,29 @@ def fill_category(diary_id, category_id):
 
         if not errors:
             if generated_text is None:
-                generated_text = current_app.jinja_env.from_string(
-                    category.template
-                ).render(**values)
+                generated_text = generate_category_text(category, values)
 
             syndromes = ", ".join(values.get("syndromes", []))
 
             if entry:
-                entry.text = generated_text
-                entry.syndromes = syndromes if category.slug == "condition" else ""
-                entry.form_data = json.dumps(
-                    form_data,
-                    ensure_ascii=False,
+                entry = update_diary_entry(
+                    entry=entry,
+                    generated_text=generated_text,
+                    syndromes=syndromes if category.slug == "condition" else "",
+                    form_data=form_data,
                 )
 
             else:
-                last_position = (
-                    db.session.scalar(
-                        select(func.max(DiaryEntry.position)).where(
-                            DiaryEntry.diary_id == diary.id
-                        )
-                    )
-                    or -1
-                )
-
-                entry = DiaryEntry(
+                entry = create_diary_entry(
                     diary_id=diary.id,
                     category_id=category.id,
-                    text=generated_text,
-                    position=last_position + 1,
-                    syndromes=(syndromes if category.slug == "condition" else ""),
-                    form_data=json.dumps(
-                        form_data,
-                        ensure_ascii=False,
-                    ),
+                    generated_text=generated_text,
+                    syndromes=syndromes if category.slug == "condition" else "",
+                    form_data=form_data,
                 )
 
-                db.session.add(entry)
-
             try:
-                db.session.commit()
+                save_diary_entry()
             except Exception:
                 db.session.rollback()
                 current_app.logger.exception("Ошибка при сохранении раздела дневника.")

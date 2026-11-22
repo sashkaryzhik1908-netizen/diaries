@@ -6,7 +6,12 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from sqlalchemy import select
 
 from app.extensions import db
-from laboratory.models import LaboratoryIndicator
+from laboratory.models import (
+    LaboratoryAlias,
+    LaboratoryCategory,
+    LaboratoryIndicator,
+    LaboratorySource,
+)
 from laboratory.parser import parse_laboratory_text
 
 
@@ -199,3 +204,148 @@ def generate_laboratory_text(source_text):
     results = parse_laboratory_text(source_text)
 
     return format_laboratory_results(results)
+
+
+def get_laboratory_categories():
+    """Получает список категорий лабораторных исследований."""
+    return db.session.scalars(
+        select(LaboratoryCategory).order_by(LaboratoryCategory.name)
+    ).all()
+
+
+def get_category_indicators(category_id):
+    """Получает показатели лабораторной категории."""
+    return db.session.scalars(
+        select(LaboratoryIndicator)
+        .where(LaboratoryIndicator.category_id == category_id)
+        .order_by(LaboratoryIndicator.name)
+    ).all()
+
+
+def create_laboratory_category(name, slug):
+    """Создаёт категорию лабораторных исследований."""
+    category = LaboratoryCategory(
+        name=name,
+        slug=slug,
+    )
+
+    db.session.add(category)
+    db.session.commit()
+
+    return category
+
+
+def update_laboratory_category(category, name, slug):
+    """Изменяет категорию лабораторных исследований."""
+    category.name = name
+    category.slug = slug
+
+    db.session.commit()
+
+
+def delete_laboratory_category(category):
+    """Удаляет категорию лабораторных исследований."""
+    db.session.delete(category)
+    db.session.commit()
+
+
+def create_laboratory_indicator(
+    category_id,
+    name,
+    code,
+    unit,
+    precision,
+):
+    """Создаёт лабораторный показатель."""
+    indicator = LaboratoryIndicator(
+        category_id=category_id,
+        name=name,
+        code=code,
+        unit=unit,
+        precision=precision,
+    )
+
+    db.session.add(indicator)
+    db.session.commit()
+
+    return indicator
+
+
+def update_laboratory_indicator(
+    indicator,
+    category_id,
+    name,
+    code,
+    unit,
+    precision,
+):
+    """Изменяет лабораторный показатель."""
+    indicator.category_id = category_id
+    indicator.name = name
+    indicator.code = code
+    indicator.unit = unit
+    indicator.precision = precision
+
+    db.session.commit()
+
+
+def delete_laboratory_indicator(indicator):
+    """Удаляет лабораторный показатель."""
+    db.session.delete(indicator)
+    db.session.commit()
+
+
+def get_indicator_aliases(indicator_id):
+    """Получает альтернативные названия лабораторного показателя."""
+    return db.session.scalars(
+        select(LaboratoryAlias)
+        .where(LaboratoryAlias.indicator_id == indicator_id)
+        .order_by(LaboratoryAlias.alias)
+    ).all()
+
+
+def create_laboratory_alias(indicator_id, alias_text):
+    """Создаёт альтернативное название лабораторного показателя."""
+    alias = LaboratoryAlias(
+        indicator_id=indicator_id,
+        alias=alias_text,
+    )
+
+    db.session.add(alias)
+    db.session.commit()
+
+    return alias
+
+
+def update_laboratory_alias(alias, indicator_id, alias_text):
+    """Изменяет альтернативное название лабораторного показателя."""
+    alias.indicator_id = indicator_id
+    alias.alias = alias_text
+
+    db.session.commit()
+
+
+def delete_laboratory_alias(alias):
+    """Удаляет альтернативное название лабораторного показателя."""
+    db.session.delete(alias)
+    db.session.commit()
+
+
+def save_laboratory_source(diary_id, source, source_text, result_text):
+    """Сохраняет исходный и обработанный лабораторный текст."""
+    if source is None:
+        source = LaboratorySource(
+            diary_id=diary_id,
+            source_text=source_text,
+            result_text=result_text,
+        )
+
+        db.session.add(source)
+
+    else:
+        source.source_text = source_text
+        source.result_text = result_text
+
+    db.session.commit()
+
+    return source

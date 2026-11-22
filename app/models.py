@@ -1,7 +1,6 @@
 from datetime import UTC, datetime
 
-from flask_login import logout_user, UserMixin
-
+from flask_login import UserMixin
 
 from app.extensions import db
 
@@ -81,6 +80,7 @@ class User(db.Model, UserMixin):
         backref="user",
         cascade="all, delete-orphan",
     )
+
 
 class Diary(db.Model):
     __tablename__ = "diary"

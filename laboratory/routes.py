@@ -5,6 +5,7 @@ from sqlalchemy import select
 from app.decorators import admin_required
 from app.extensions import db
 from app.models import Diary
+from laboratory import services as laboratory_service
 from laboratory.forms import (
     LaboratoryAliasForm,
     LaboratoryCategoryForm,
@@ -15,9 +16,7 @@ from laboratory.models import (
     LaboratoryAlias,
     LaboratoryCategory,
     LaboratoryIndicator,
-    LaboratorySource,
 )
-from laboratory.services import generate_laboratory_text
 
 laboratory_bp = Blueprint(
     "laboratory",
@@ -36,9 +35,7 @@ laboratory_bp = Blueprint(
 @admin_required
 def list_categories():
     """Список категорий лабораторных исследований."""
-    categories = db.session.scalars(
-        select(LaboratoryCategory).order_by(LaboratoryCategory.name)
-    ).all()
+    categories = laboratory_service.get_laboratory_categories()
 
     return render_template(
         "laboratory/list_categories.html",
@@ -53,11 +50,7 @@ def view_category(category_id):
     """Просмотр категории и её показателей."""
     category = db.get_or_404(LaboratoryCategory, category_id)
 
-    indicators = db.session.scalars(
-        select(LaboratoryIndicator)
-        .where(LaboratoryIndicator.category_id == category.id)
-        .order_by(LaboratoryIndicator.name)
-    ).all()
+    indicators = laboratory_service.get_category_indicators(category.id)
 
     return render_template(
         "laboratory/view_category.html",
@@ -74,13 +67,10 @@ def add_category():
     form = LaboratoryCategoryForm()
 
     if form.validate_on_submit():
-        category = LaboratoryCategory(
+        category = laboratory_service.create_laboratory_category(
             name=form.name.data,
             slug=form.slug.data,
         )
-
-        db.session.add(category)
-        db.session.commit()
 
         flash("Категория добавлена.", "success")
 
@@ -109,10 +99,11 @@ def edit_category(category_id):
     form = LaboratoryCategoryForm(obj=category)
 
     if form.validate_on_submit():
-        category.name = form.name.data
-        category.slug = form.slug.data
-
-        db.session.commit()
+        laboratory_service.update_laboratory_category(
+            category=category,
+            name=form.name.data,
+            slug=form.slug.data,
+        )
 
         flash("Категория изменена.", "success")
 
@@ -140,8 +131,7 @@ def delete_category(category_id):
     """Удаление категории лабораторных исследований."""
     category = db.get_or_404(LaboratoryCategory, category_id)
 
-    db.session.delete(category)
-    db.session.commit()
+    laboratory_service.delete_laboratory_category(category)
 
     flash("Категория удалена.", "success")
 
@@ -171,16 +161,13 @@ def add_indicator(category_id):
     form.category_id.choices = [(item.id, item.name) for item in categories]
 
     if form.validate_on_submit():
-        indicator = LaboratoryIndicator(
+        laboratory_service.create_laboratory_indicator(
             category_id=category.id,
             name=form.name.data,
             code=form.code.data or None,
             unit=form.unit.data or None,
             precision=form.precision.data,
         )
-
-        db.session.add(indicator)
-        db.session.commit()
 
         flash("Показатель добавлен.", "success")
 
@@ -219,15 +206,16 @@ def edit_indicator(indicator_id):
     form.category_id.choices = [(item.id, item.name) for item in categories]
 
     if form.validate_on_submit():
-        indicator.category_id = form.category_id.data
-        indicator.name = form.name.data
-        indicator.code = form.code.data or None
-        indicator.unit = form.unit.data or None
-        indicator.precision = form.precision.data
+        category_id = form.category_id.data
 
-        category_id = indicator.category_id
-
-        db.session.commit()
+        laboratory_service.update_laboratory_indicator(
+            indicator=indicator,
+            category_id=category_id,
+            name=form.name.data,
+            code=form.code.data or None,
+            unit=form.unit.data or None,
+            precision=form.precision.data,
+        )
 
         flash("Показатель изменён.", "success")
 
@@ -256,8 +244,7 @@ def delete_indicator(indicator_id):
     indicator = db.get_or_404(LaboratoryIndicator, indicator_id)
     category_id = indicator.category_id
 
-    db.session.delete(indicator)
-    db.session.commit()
+    laboratory_service.delete_laboratory_indicator(indicator)
 
     flash("Показатель удалён.", "success")
 
@@ -283,11 +270,7 @@ def list_aliases(indicator_id):
     """Список альтернативных названий показателя."""
     indicator = db.get_or_404(LaboratoryIndicator, indicator_id)
 
-    aliases = db.session.scalars(
-        select(LaboratoryAlias)
-        .where(LaboratoryAlias.indicator_id == indicator.id)
-        .order_by(LaboratoryAlias.alias)
-    ).all()
+    aliases = laboratory_service.get_indicator_aliases(indicator.id)
 
     return render_template(
         "laboratory/list_aliases.html",
@@ -314,13 +297,10 @@ def add_alias(indicator_id):
     form.indicator_id.choices = [(item.id, item.name) for item in indicators]
 
     if form.validate_on_submit():
-        alias = LaboratoryAlias(
+        laboratory_service.create_laboratory_alias(
             indicator_id=indicator.id,
-            alias=form.alias.data,
+            alias_text=form.alias.data,
         )
-
-        db.session.add(alias)
-        db.session.commit()
 
         flash("Альтернативное название добавлено.", "success")
 
@@ -364,10 +344,11 @@ def edit_alias(alias_id):
             form.indicator_id.data,
         )
 
-        alias.indicator_id = target_indicator.id
-        alias.alias = form.alias.data
-
-        db.session.commit()
+        laboratory_service.update_laboratory_alias(
+            alias=alias,
+            indicator_id=target_indicator.id,
+            alias_text=form.alias.data,
+        )
 
         flash("Альтернативное название изменено.", "success")
 
@@ -396,8 +377,7 @@ def delete_alias(alias_id):
     alias = db.get_or_404(LaboratoryAlias, alias_id)
     indicator_id = alias.indicator_id
 
-    db.session.delete(alias)
-    db.session.commit()
+    laboratory_service.delete_laboratory_alias(alias)
 
     flash("Альтернативное название удалено.", "success")
 
@@ -437,23 +417,16 @@ def diary_laboratory(diary_id):
         source_text = form.source_text.data
 
         # Формирование обработанного лабораторного текста.
-        result_text = generate_laboratory_text(source_text)
+        result_text = laboratory_service.generate_laboratory_text(source_text)
 
-        if source is None:
-            source = LaboratorySource(
+        try:
+            laboratory_service.save_laboratory_source(
                 diary_id=diary.id,
+                source=source,
                 source_text=source_text,
                 result_text=result_text,
             )
 
-            db.session.add(source)
-
-        else:
-            source.source_text = source_text
-            source.result_text = result_text
-
-        try:
-            db.session.commit()
             flash("Лабораторный текст сохранён.", "success")
 
         except Exception:

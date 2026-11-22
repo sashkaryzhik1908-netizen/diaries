@@ -8,10 +8,8 @@ from app.models import (
     TherapyPurpose,
     VariableOption,
 )
-from app.services.diary_service import (
-    process_category_form,
-    process_prescriptions,
-)
+from app.services.category_form_service import process_category_form
+from app.services.prescriptions_service import process_prescriptions
 
 
 # Проверка обработки обычного текстового поля

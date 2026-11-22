@@ -1,15 +1,23 @@
 from flask import Blueprint, flash, redirect, render_template, url_for
 from flask_login import login_required
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from app.decorators import admin_required
 from app.extensions import db
 from app.forms import CategoryForm, TemplateVariableForm, VariableOptionForm
-from app.models import (
-    Category,
-    DiaryEntry,
-    TemplateVariable,
-    VariableOption,
+from app.models import Category, TemplateVariable, VariableOption
+from app.services.categories_service import (
+    create_category,
+    create_option,
+    create_variable,
+    delete_category,
+    delete_variable,
+    update_category,
+    update_option,
+    update_variable,
+)
+from app.services.categories_service import (
+    delete_option as delete_option_service,
 )
 
 categories_bp = Blueprint("categories", __name__)
@@ -23,17 +31,11 @@ def add_category():
     form = CategoryForm()
 
     if form.validate_on_submit():
-        last_order = db.session.scalar(select(func.max(Category.order))) or 0
-
-        category = Category(
+        category = create_category(
             name=form.name.data,
             slug=form.slug.data,
-            order=last_order + 1,
             template=form.template.data,
         )
-
-        db.session.add(category)
-        db.session.commit()
 
         flash("Шаблон категории успешно сохранён.", "success")
 
@@ -52,11 +54,12 @@ def edit_category(category_id):
     form = CategoryForm(obj=category)
 
     if form.validate_on_submit():
-        category.name = form.name.data
-        category.slug = form.slug.data
-        category.template = form.template.data
-
-        db.session.commit()
+        update_category(
+            category=category,
+            name=form.name.data,
+            slug=form.slug.data,
+            template=form.template.data,
+        )
 
         flash("Шаблон категории успешно изменён.", "success")
 
@@ -76,19 +79,14 @@ def edit_category(category_id):
 def del_category(category_id):
     category = db.get_or_404(Category, category_id)
 
-    existing_entries = db.session.scalar(
-        select(DiaryEntry).where(DiaryEntry.category_id == category.id)
-    )
+    success = delete_category(category)
 
-    if existing_entries:
+    if not success:
         flash(
             "Нельзя удалить категорию, которая используется в дневниках.",
             "warning",
         )
         return redirect(url_for("categories.list_categories"))
-
-    db.session.delete(category)
-    db.session.commit()
 
     flash("Категория удалена.", "success")
 
@@ -107,7 +105,7 @@ def add_variable(category_id):
     form = TemplateVariableForm()
 
     if form.validate_on_submit():
-        variable = TemplateVariable(
+        create_variable(
             category_id=category.id,
             name=form.name.data,
             label=form.label.data,
@@ -115,9 +113,6 @@ def add_variable(category_id):
             required=form.required.data,
             order=form.order.data,
         )
-
-        db.session.add(variable)
-        db.session.commit()
 
         flash("Переменная успешно добавлена.", "success")
         return redirect(url_for("categories.view_category", category_id=category.id))
@@ -141,13 +136,14 @@ def edit_variable(variable_id):
     form = TemplateVariableForm(obj=variable)
 
     if form.validate_on_submit():
-        variable.name = form.name.data
-        variable.label = form.label.data
-        variable.field_type = form.field_type.data
-        variable.required = form.required.data
-        variable.order = form.order.data
-
-        db.session.commit()
+        update_variable(
+            variable=variable,
+            name=form.name.data,
+            label=form.label.data,
+            field_type=form.field_type.data,
+            required=form.required.data,
+            order=form.order.data,
+        )
 
         flash("Переменная успешно изменена.", "success")
         return redirect(
@@ -176,8 +172,7 @@ def del_variable(variable_id):
 
     category_id = variable.category_id
 
-    db.session.delete(variable)
-    db.session.commit()
+    delete_variable(variable)
 
     flash("Переменная удалена.", "success")
     return redirect(url_for("categories.view_category", category_id=category_id))
@@ -195,14 +190,11 @@ def add_option(variable_id):
     form = VariableOptionForm()
 
     if form.validate_on_submit():
-        option = VariableOption(
+        create_option(
             variable_id=variable.id,
             value=form.value.data,
             output_value=form.output_value.data,
         )
-
-        db.session.add(option)
-        db.session.commit()
 
         flash("Вариант успешно добавлен.", "success")
         return redirect(
@@ -239,10 +231,11 @@ def edit_option(variable_id, option_id):
     form = VariableOptionForm(obj=option)
 
     if form.validate_on_submit():
-        option.value = form.value.data
-        option.output_value = form.output_value.data
-
-        db.session.commit()
+        update_option(
+            option=option,
+            value=form.value.data,
+            output_value=form.output_value.data,
+        )
 
         flash("Вариант успешно изменён.", "success")
         return redirect(url_for("categories.list_options", variable_id=variable.id))
@@ -272,8 +265,7 @@ def delete_option(variable_id, option_id):
         )
     )
 
-    db.session.delete(option)
-    db.session.commit()
+    delete_option_service(option)
 
     flash("Вариант удалён.", "success")
     return redirect(url_for("categories.list_options", variable_id=variable.id))

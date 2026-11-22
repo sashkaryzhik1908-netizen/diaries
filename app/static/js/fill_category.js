@@ -56,15 +56,24 @@ function addOption(variableName) {
     row.append(text, buttons);
     item.appendChild(row);
 
-    if (variableName === "drug") {
-        const doseInput = document.createElement("input");
-        doseInput.type = "text";
-        doseInput.className = "form-control mt-2";
-        doseInput.placeholder = "Введите дозировку";
-        doseInput.name = `dose_${optionId}`;
-        doseInput.value = getSavedDose(optionId);
-        item.appendChild(doseInput);
-    }
+   if (variableName === "drug") {
+    const doseContainer = document.createElement("div");
+    doseContainer.className = "d-flex align-items-center gap-2 mt-2";
+
+    const doseInput = document.createElement("input");
+    doseInput.type = "text";
+    doseInput.className = "form-control w-50";
+    doseInput.placeholder = "Введите дозировку";
+    doseInput.name = `dose_${optionId}`;
+    doseInput.value = getSavedDose(optionId);
+
+    const doseHint = document.createElement("span");
+    doseHint.className = "text-muted small text-nowrap";
+    doseHint.textContent = "мкг/кг/мин";
+
+    doseContainer.append(doseInput, doseHint);
+    item.appendChild(doseContainer);
+}
 
     list.appendChild(item);
     updateResult(list, result);

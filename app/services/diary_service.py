@@ -1,4 +1,6 @@
 from datetime import datetime
+from datetime import timezone
+from zoneinfo import ZoneInfo
 
 from app.models import (
     TherapyPurpose,
@@ -6,6 +8,13 @@ from app.models import (
     VariableOption,
 )
 
+LOCAL_TIMEZONE = ZoneInfo("Asia/Almaty")
+
+
+def to_local_time(dt):
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(LOCAL_TIMEZONE)
 
 # Обработка назначений
 def process_prescriptions(form):

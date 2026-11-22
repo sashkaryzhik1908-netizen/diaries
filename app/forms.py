@@ -14,6 +14,8 @@ from wtforms.validators import (
     DataRequired,
     EqualTo,
     Length,
+    Optional,
+    ValidationError,
 )
 
 
@@ -38,6 +40,38 @@ class RegisterForm(FlaskForm):
         validators=[DataRequired()],
     )
     submit = SubmitField("Зарегистрироваться")
+
+
+class EditUserForm(FlaskForm):
+    username = StringField(
+        "Имя пользователя",
+        validators=[
+            DataRequired(),
+            Length(max=100),
+        ],
+    )
+    password = PasswordField(
+        "Новый пароль",
+        validators=[
+            Optional(),
+            EqualTo("confirm", message="Пароли должны совпадать"),
+        ],
+        render_kw={"autocomplete": "new-password"},
+    )
+
+    confirm = PasswordField(
+        "Подтвердите новый пароль",
+        validators=[Optional()],
+        render_kw={"autocomplete": "new-password"},
+    )
+    submit = SubmitField("Сохранить")
+
+    def validate_confirm(self, field):
+        if self.password.data and not field.data:
+            raise ValidationError("Подтвердите новый пароль.")
+
+        if field.data and not self.password.data:
+            raise ValidationError("Введите новый пароль.")
 
 
 class LoginForm(FlaskForm):
@@ -104,7 +138,10 @@ class TemplateVariableForm(FlaskForm):
         validators=[DataRequired()],
     )
     required = BooleanField("Обязательное поле")
-    order = IntegerField("Порядок расположения при заполнении дневника", validators=[DataRequired()])
+    order = IntegerField(
+        "Порядок расположения при заполнении дневника",
+        validators=[
+            DataRequired()])
     submit = SubmitField("Сохранить")
 
 

@@ -24,7 +24,7 @@
                 <h5>Дневник №{{ diary.number }}</h5>
 
                 <p class="text-muted">
-                    Создан: {{ diary.created_at.strftime("%d.%m.%Y %H:%M") }}
+                    Создан: {{ to_local_time(diary.created_at).strftime("%d.%m.%Y %H:%M") }}
                 </p>
 
                 <a href="{{ url_for('diaries.view_diary', diary_id=diary.id) }}"

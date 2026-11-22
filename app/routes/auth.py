@@ -9,9 +9,8 @@ from flask_login import (
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from app.extensions import db, login_manager
-from app.models import User
-from app.forms import RegisterForm, LoginForm
-
+from app.models import User, Diary
+from app.forms import RegisterForm, LoginForm, EditUserForm
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -51,6 +50,38 @@ def register():
     return render_template("auth/register.html", form=form)
 
 
+# Редактирование профиля
+@auth_bp.route("/edit", methods=["GET", "POST"])
+@login_required
+def edit_user():
+    user = current_user
+    form = EditUserForm(obj=user)
+
+    if form.validate_on_submit():
+
+        # Проверяем, занят ли логин другим пользователем
+        existing_user = User.query.filter_by(
+            username=form.username.data
+        ).first()
+
+        if existing_user and existing_user.id != user.id:
+            flash("Это имя пользователя уже занято.", "danger")
+            return render_template("auth/edit_user.html", form=form)
+
+        user.username = form.username.data
+
+        # Если введён новый пароль, обновляем его
+        if form.password.data:
+            user.password = generate_password_hash(form.password.data)
+
+        db.session.commit()
+
+        flash("Данные профиля успешно обновлены.", "success")
+        return redirect(url_for("auth.user"))
+
+    return render_template("auth/edit_user.html", form=form)
+
+
 # Вход
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -86,3 +117,13 @@ def logout():
 @auth_bp.route("/")
 def index():
     return render_template("index.html")
+
+
+@auth_bp.route("/user")
+@login_required
+def user():
+    diaries = Diary.query.filter(Diary.user_id == current_user.id).all()
+    return render_template(
+        "auth/user.html",
+        user=current_user,
+        diaries=diaries)

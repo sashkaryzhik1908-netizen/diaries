@@ -22,6 +22,7 @@ def create_app(test_config=None):
     from app.routes.therapy import therapy_bp
     from app.routes.diaries import diaries_bp
     from app.routes.diary_entries import diary_entries_bp
+    from app.services.diary_service import to_local_time
     from laboratory.routes import laboratory_bp
 
     migrate.init_app(app, db)
@@ -39,5 +40,9 @@ def create_app(test_config=None):
     app.register_blueprint(diaries_bp)
     app.register_blueprint(diary_entries_bp)
     app.register_blueprint(laboratory_bp)
+
+    @app.context_processor
+    def inject_utilities():
+        return dict(to_local_time=to_local_time)
 
     return app

@@ -6,7 +6,7 @@
 {% endblock title %}
 
 {% block content %}
-<div class="container">
+<br><div class="container">
 
     {% if category %}
         <h1>Редактор шаблона</h1>
@@ -24,7 +24,7 @@
         </form>
     {% else %}
         <h1>Добавление шаблона</h1>
-    {% endif %}
+    {% endif %}<br>
 
     <form method="POST">
         {{ form.hidden_tag() }}

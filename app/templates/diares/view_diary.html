@@ -6,12 +6,12 @@
 {% endblock title %}
 
 {% block content %}
-<div class="container">
+<br><div class="container">
 
     <h1>Дневник №{{ diary.number }}</h1>
 
     <p class="text-muted">
-        Создан: {{ diary.created_at.strftime("%d.%m.%Y %H:%M") }}
+        Создан: {{ to_local_time(diary.created_at).strftime("%d.%m.%Y %H:%M") }}
     </p>
 
     <hr>
@@ -51,10 +51,24 @@
             </a>
         </div>
     </div>
+    <div class="card mb-2">
+    <div class="card-body d-flex justify-content-between align-items-center">
+        <span>Инструментальные исследования</span>
 
+        <a
+            href="{{ url_for(
+                'instrumental.diary_instrumental',
+                diary_id=diary.id
+            ) }}"
+            class="btn btn-primary"
+        >
+            Заполнить
+        </a>
+    </div>
+</div>
     <hr>
 
-    
+
 <h3 class="mb-3">Содержимое дневника</h3>
 
 <div id="diary-content">
@@ -76,12 +90,16 @@
     {% endfor %}
 
     {% if diary.laboratory_source and diary.laboratory_source.result_text %}
-        <p class="mb-1">Лабораторные исследования</p>
+        <p class="mb-1"><strong>Лабораторные исследования</strong></p>
         <p class="mb-3" style="white-space: pre-line;">{{ diary.laboratory_source.result_text | trim }}</p>
     {% endif %}
-
+    {% if diary.instrumental_source and diary.instrumental_source.result_text %}
+    <p class="mb-1"><strong>Инструментальные исследования</strong></p>
+    <p class="mb-3" style="white-space: pre-line;">{{ diary.instrumental_source.result_text | trim }}</p>
+    {% endif %}
     {% if syndromes %}
-        <p class="mb-1">Ведущие патологические синдромы</p>
+        <p class="mb-1"></p>
+    <p class="mb-1"><strong>Ведущие патологические синдромы</strong></p>
 
         <ol style="list-style-type: disc; margin-bottom: 0; padding-left: 20px;">
             {% for syndrome in syndromes %}
@@ -96,13 +114,18 @@
         <p class="mb-3" style="white-space: pre-line;">{{ prescriptions.entry.text | trim }}</p>
     {% endif %}
 
-    {% if not entries and not (diary.laboratory_source and diary.laboratory_source.result_text) %}
-        <p class="text-muted">Дневник пока пуст.</p>
+    {% if not entries
+            and not (diary.laboratory_source and diary.laboratory_source.result_text)
+            and not (diary.instrumental_source and diary.instrumental_source.result_text)
+            and not syndromes %}
+    <p class="text-muted">Дневник пока пуст.</p>
     {% endif %}
-
 </div>
 
-    {% if entries %}
+    {% if entries
+        or (diary.laboratory_source and diary.laboratory_source.result_text)
+        or (diary.instrumental_source and diary.instrumental_source.result_text)
+        or syndromes %}
     <button
         type="button"
         class="btn btn-primary mt-2"

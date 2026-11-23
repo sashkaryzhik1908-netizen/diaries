@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_babel import Babel
 
 from app.extensions import csrf, db, login_manager, migrate
 from config import Config
@@ -12,11 +13,14 @@ def create_app(test_config=None):
     if test_config:
         app.config.update(test_config)
 
+    babel = Babel(app)
     csrf.init_app(app)
     db.init_app(app)
 
     import laboratory.models as laboratory_models  # noqa: F401
+    import instrumental.models as instrumental_models  # noqa: F401
     from app import models as models
+    from app.admin import init_admin
     from app.routes.auth import auth_bp
     from app.routes.categories import categories_bp
     from app.routes.diaries import diaries_bp
@@ -24,6 +28,7 @@ def create_app(test_config=None):
     from app.routes.therapy import therapy_bp
     from app.services.diary_service import to_local_time
     from laboratory.routes import laboratory_bp
+    from instrumental.routes import instrumental_bp
 
     migrate.init_app(app, db)
 
@@ -40,9 +45,11 @@ def create_app(test_config=None):
     app.register_blueprint(diaries_bp)
     app.register_blueprint(diary_entries_bp)
     app.register_blueprint(laboratory_bp)
+    app.register_blueprint(instrumental_bp)
 
     @app.context_processor
     def inject_utilities():
         return {"to_local_time": to_local_time}
 
+    init_admin(app)
     return app

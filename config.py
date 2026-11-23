@@ -7,6 +7,8 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY")
+    BABEL_DEFAULT_LOCALE = "ru"
+    BABEL_DEFAULT_TIMEZONE = "Asia/Almaty"
 
     if not SECRET_KEY:
         raise RuntimeError(

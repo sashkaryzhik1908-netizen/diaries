@@ -22,7 +22,7 @@ class Category(db.Model):
     )
 
     def __repr__(self):
-        return f"<Category {self.name}>"
+        return f"{self.name}"
 
 
 class TemplateVariable(db.Model):
@@ -54,6 +54,9 @@ class TemplateVariable(db.Model):
         ),
     )
 
+    def __repr__(self):
+        return f"{self.label}"
+
 
 class VariableOption(db.Model):
     __tablename__ = "variable_option"
@@ -67,6 +70,9 @@ class VariableOption(db.Model):
     value = db.Column(db.String(255), nullable=False)
     output_value = db.Column(db.String(255), nullable=False)
 
+    def __repr__(self):
+        return f"{self.output_value}"
+
 
 class User(db.Model, UserMixin):
     __tablename__ = "user"
@@ -75,6 +81,7 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(500), nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    is_superuser = db.Column(db.Boolean, default=False, nullable=False)
     diaries = db.relationship(
         "Diary",
         backref="user",
@@ -114,6 +121,14 @@ class Diary(db.Model):
         uselist=False,
         cascade="all, delete-orphan",
     )
+
+    instrumental_source = db.relationship(
+        "InstrumentalSource",
+        back_populates="diary",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
     __table_args__ = (
         db.UniqueConstraint(
             "user_id",

@@ -5,7 +5,7 @@
 {% endblock title %}
 
 {% block content %}
-<div class="container">
+<br><div class="container">
     <h1 class="mb-4">{{ category.name }}</h1>
 
     {% if errors %}
@@ -251,7 +251,7 @@
                         name="{{ variable.name }}"
                         {% if variable.required %}required{% endif %}>
                     <option value="">Выберите вариант</option>
-                    {% for option in variable.options|sort(attribute="order") %}
+                    {% for option in variable.options|sort(attribute="value") %}
                     <option value="{{ option.value }}"
                             {% if form_data.get(variable.name, [''])[0] == option.value %}selected{% endif %}>
                         {{ option.value }}
@@ -263,7 +263,7 @@
                 <select class="form-select mb-3"
                         id="select_{{ variable.name }}">
                     <option value="">Выберите вариант</option>
-                    {% for option in variable.options|sort(attribute="order") %}
+                    {% for option in variable.options|sort(attribute="value") %}
                     <option value="{{ option.id }}">
                         {{ option.value }}
                     </option>

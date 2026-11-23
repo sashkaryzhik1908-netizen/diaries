@@ -37,6 +37,14 @@
                 Личный кабинет
               </a>
             </li>
+            {% if current_user.is_superuser %}
+            <li>
+              <a class="dropdown-item"
+                 href="{{ url_for('admin.index') }}">
+                Панель администратора
+              </a>
+            </li>
+            {% endif %}
             <li>
               <form method="POST" action="{{ url_for('auth.logout') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -83,6 +91,12 @@
         <a class="btn btn-primary"
            href="{{ url_for('laboratory.list_categories') }}">
           Лаборатория
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="btn btn-primary"
+           href="{{ url_for('instrumental.list_indicators') }}">
+          Инструментальные исследования
         </a>
       </li>
       {% endif %}

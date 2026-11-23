@@ -6,7 +6,7 @@
 {% endblock title %}
 
 {% block content %}
-<div class="container">
+<br><div class="container">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
 
@@ -25,15 +25,8 @@
 
     </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for message_category, message in messages %}
-                <div class="alert alert-{{ message_category }}">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+{% include "laboratory/_flash_messages.html" %}
+
 
     <div class="d-flex justify-content-between align-items-center mb-3">
 
@@ -73,7 +66,8 @@
                               action="{{ url_for(
                                   'laboratory.delete_alias',
                                   alias_id=alias.id
-                              ) }}">
+                              ) }}"
+                              onsubmit="return confirm('Удалить альтернативное название?');">
 
                             <input type="hidden"
                                    name="csrf_token"

@@ -1,32 +1,46 @@
-
 {% extends "base.html" %}
 
-{% block title %}
 {% if alias %}
-Редактирование альтернативного названия
+    {% set page_title = "Редактирование альтернативного названия" %}
 {% else %}
-Добавление альтернативного названия
+    {% set page_title = "Добавление альтернативного названия" %}
 {% endif %}
+
+{% if indicator %}
+    {% set indicator_name = indicator.name %}
+{% elif alias %}
+    {% set indicator_name = alias.indicator.name %}
+{% endif %}
+
+{% block title %}
+    {{ page_title }}
 {% endblock title %}
 
 {% block content %}
+<br>
 <div class="container">
 
+    {% if alias %}
+        {% set cancel_url = url_for(
+            'laboratory.list_aliases',
+            indicator_id=alias.indicator_id
+        ) %}
+    {% elif indicator %}
+        {% set cancel_url = url_for(
+            'laboratory.list_aliases',
+            indicator_id=indicator.id
+        ) %}
+    {% else %}
+        {% set cancel_url = url_for('laboratory.list_categories') %}
+    {% endif %}
+
     <h1 class="mb-4">
-        {% if alias %}
-            Редактирование альтернативного названия
-        {% else %}
-            Добавление альтернативного названия
-        {% endif %}
+        {{ page_title }}
     </h1>
 
-    {% if indicator %}
+    {% if indicator_name is defined %}
         <p class="text-muted">
-            Основной показатель: {{ indicator.name }}
-        </p>
-    {% elif alias %}
-        <p class="text-muted">
-            Основной показатель: {{ alias.indicator.name }}
+            Основной показатель: {{ indicator_name }}
         </p>
     {% endif %}
 
@@ -64,28 +78,9 @@
                 value="Сохранить"
             ) }}
 
-            {% if alias %}
-                <a href="{{ url_for(
-                    'laboratory.list_aliases',
-                    indicator_id=alias.indicator_id
-                ) }}"
-                   class="btn btn-secondary btn-lg">
-                    Отмена
-                </a>
-            {% elif indicator %}
-                <a href="{{ url_for(
-                    'laboratory.list_aliases',
-                    indicator_id=indicator.id
-                ) }}"
-                   class="btn btn-secondary btn-lg">
-                    Отмена
-                </a>
-            {% else %}
-                <a href="{{ url_for('laboratory.list_categories') }}"
-                   class="btn btn-secondary btn-lg">
-                    Отмена
-                </a>
-            {% endif %}
+            <a href="{{ cancel_url }}" class="btn btn-secondary btn-lg">
+                Отмена
+            </a>
 
         </div>
 

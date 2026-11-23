@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Редактор переменной{% endblock title %}
 {% block content %}
-<div class="container">
+<br><div class="container">
   {% if 'edit' in request.path %}
     <h2>Редактирование переменной</h2>
   {% else %}
     <h2>Добавление переменной</h2>
-  {% endif %}
+  {% endif %}<br>
   <form method="POST">
     {{ form.csrf_token }}
     {{ form.name(class="form-control form-control-lg py-3 mb-3", placeholder=form.name.label.text) }}

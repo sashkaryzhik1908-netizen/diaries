@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, redirect, render_template, url_for
+from flask import Blueprint, flash, redirect, request, render_template, url_for
 from flask_login import login_required
 from flask_wtf import FlaskForm
 
@@ -136,7 +136,7 @@ def delete_therapy_purpose(purpose_id):
 @login_required
 @admin_required
 def list_therapy_medications():
-    medications = therapy_service.get_therapy_medications()
+    medications = therapy_service.get_all_therapy_medications()
 
     delete_form = FlaskForm()
 
@@ -153,9 +153,10 @@ def list_therapy_medications():
 @admin_required
 def add_therapy_medication():
     form = TherapyMedicationForm()
-
+    form.purpose.choices = [(p.id, p.name) for p in TherapyPurpose.query.all()]
     if form.validate_on_submit():
         name = form.name.data.strip()
+        purpose_ids = form.purpose.data
 
         existing_medication = therapy_service.get_existing_medication(name)
 
@@ -170,7 +171,7 @@ def add_therapy_medication():
                 form=form,
             )
 
-        therapy_service.create_therapy_medication(name)
+        therapy_service.create_therapy_medication(name, purpose_ids)
 
         flash("Препарат успешно добавлен.", "success")
         return redirect(url_for("therapy.list_therapy_medications"))
@@ -192,9 +193,14 @@ def edit_therapy_medication(medication_id):
     medication = db.get_or_404(TherapyMedication, medication_id)
 
     form = TherapyMedicationForm(obj=medication)
+    form.purpose.choices = [(p.id, p.name) for p in TherapyPurpose.query.all()]
+
+    if request.method == "GET":
+        form.purpose.data = [p.id for p in medication.purposes]
 
     if form.validate_on_submit():
         name = form.name.data.strip()
+        purpose_ids = form.purpose.data
 
         existing_medication = therapy_service.get_existing_medication(
             name,
@@ -216,6 +222,7 @@ def edit_therapy_medication(medication_id):
         therapy_service.update_therapy_medication(
             medication=medication,
             name=name,
+            purpose_ids=purpose_ids,
         )
 
         flash("Название препарата изменено.", "success")

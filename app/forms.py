@@ -1,13 +1,16 @@
 from flask_wtf import FlaskForm
+
 from wtforms import (
     BooleanField,
     IntegerField,
+    SelectMultipleField,
     PasswordField,
     SelectField,
     StringField,
     SubmitField,
     TextAreaField,
 )
+
 from wtforms.validators import (
     DataRequired,
     EqualTo,
@@ -200,5 +203,9 @@ class TherapyMedicationForm(FlaskForm):
             DataRequired(),
             Length(max=200),
         ],
+    )
+    purpose = SelectMultipleField(
+        "Цель",
+        choices=[],
     )
     submit = SubmitField("Сохранить")

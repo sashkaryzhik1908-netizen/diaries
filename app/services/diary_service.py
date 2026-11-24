@@ -2,8 +2,8 @@ import json
 from datetime import UTC
 from zoneinfo import ZoneInfo
 
-from flask import current_app
 from sqlalchemy import func, select
+from flask import current_app
 
 from app.extensions import db
 from app.models import (
@@ -14,6 +14,7 @@ from app.models import (
     TherapyMedication,
     TherapyPurpose,
 )
+
 
 LOCAL_TIMEZONE = ZoneInfo("Asia/Almaty")
 

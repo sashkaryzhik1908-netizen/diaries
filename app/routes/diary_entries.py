@@ -4,6 +4,7 @@ from flask import (
     Blueprint,
     current_app,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -12,6 +13,7 @@ from flask import (
 from flask_login import current_user, login_required
 
 from app.extensions import db
+from app.services import therapy_service
 from app.services.category_form_service import process_category_form
 from app.services.diary_service import (
     create_diary_entry,
@@ -148,4 +150,15 @@ def fill_category(diary_id, category_id):
         purposes=purposes,
         medications=medications,
         form_data=form_data,
+    )
+
+
+# Получение препаратов по цели терапии
+@diary_entries_bp.route("/therapy/medications/<int:purpose_id>")
+@login_required
+def get_medications_by_purpose(purpose_id):
+    medications = therapy_service.get_therapy_medications(purpose_id)
+
+    return jsonify(
+        [{"id": medication.id, "name": medication.name} for medication in medications]
     )

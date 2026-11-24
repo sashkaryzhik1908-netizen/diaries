@@ -6,7 +6,6 @@ from app.decorators import admin_required
 from app.extensions import db
 from app.models import Diary
 from instrumental import services as instrumental_service
-
 from instrumental.forms import (
     InstrumentalAliasForm,
     InstrumentalIndicatorForm,

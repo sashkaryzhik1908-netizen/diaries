@@ -56,24 +56,24 @@ function addOption(variableName) {
     row.append(text, buttons);
     item.appendChild(row);
 
-   if (variableName === "drug") {
-    const doseContainer = document.createElement("div");
-    doseContainer.className = "d-flex align-items-center gap-2 mt-2";
+    if (variableName === "drug") {
+        const doseContainer = document.createElement("div");
+        doseContainer.className = "d-flex align-items-center gap-2 mt-2";
 
-    const doseInput = document.createElement("input");
-    doseInput.type = "text";
-    doseInput.className = "form-control w-50";
-    doseInput.placeholder = "Введите дозировку";
-    doseInput.name = `dose_${optionId}`;
-    doseInput.value = getSavedDose(optionId);
+        const doseInput = document.createElement("input");
+        doseInput.type = "text";
+        doseInput.className = "form-control w-50";
+        doseInput.placeholder = "Введите дозировку";
+        doseInput.name = `dose_${optionId}`;
+        doseInput.value = getSavedDose(optionId);
 
-    const doseHint = document.createElement("span");
-    doseHint.className = "text-muted small text-nowrap";
-    doseHint.textContent = "мкг/кг/мин";
+        const doseHint = document.createElement("span");
+        doseHint.className = "text-muted small text-nowrap";
+        doseHint.textContent = "мкг/кг/мин";
 
-    doseContainer.append(doseInput, doseHint);
-    item.appendChild(doseContainer);
-}
+        doseContainer.append(doseInput, doseHint);
+        item.appendChild(doseContainer);
+    }
 
     list.appendChild(item);
     updateResult(list, result);
@@ -152,12 +152,67 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!container || !addButton) return;
 
+    const medicationsUrl = container.dataset.medicationsUrl;
+
     function getSavedValue(name) {
         return savedFormData[name]?.[0] || "";
     }
 
     function getSavedList(name) {
         return savedFormData[name] || [];
+    }
+
+    // Получение препаратов по цели терапии
+    async function updateMedicationOptions(group, purposeId) {
+        const medicationSelects = group.querySelectorAll(
+            '.medication-row select[name^="medication_id"]'
+        );
+
+        medicationSelects.forEach(select => {
+            select.innerHTML = '<option value="">Загрузка препаратов...</option>';
+            select.disabled = true;
+        });
+
+        if (!purposeId) {
+            medicationSelects.forEach(select => {
+                select.innerHTML =
+                    '<option value="">Сначала выберите цель терапии</option>';
+                select.disabled = false;
+            });
+            return;
+        }
+
+        try {
+            const url = medicationsUrl.replace(/0$/, purposeId);
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error("Ошибка получения препаратов");
+            }
+
+            const medications = await response.json();
+
+            medicationSelects.forEach(select => {
+                select.innerHTML = '<option value="">Выберите препарат</option>';
+
+                medications.forEach(medication => {
+                    const option = document.createElement("option");
+                    option.value = medication.id;
+                    option.textContent = medication.name;
+                    select.appendChild(option);
+                });
+
+                select.disabled = false;
+            });
+        } catch (error) {
+            console.error(error);
+
+            medicationSelects.forEach(select => {
+                select.innerHTML =
+                    '<option value="">Ошибка загрузки препаратов</option>';
+                select.disabled = false;
+            });
+        }
     }
 
     function updateGroupNames(row, index) {
@@ -192,26 +247,33 @@ document.addEventListener("DOMContentLoaded", function () {
         );
     }
 
-    function restoreGroups() {
+    // Восстановление ранее сохранённых назначений
+    async function restoreGroups() {
         const purposeKeys = Object.keys(savedFormData)
             .filter(key => /^purpose_id\[\d+\]$/.test(key))
             .sort((a, b) => Number(a.match(/\d+/)[0]) -
                 Number(b.match(/\d+/)[0]));
 
-        if (!purposeKeys.length) return;
-
         const templateRow = container
             .querySelector(".prescription-row")
             .cloneNode(true);
 
+        if (!purposeKeys.length) {
+            const firstRow = container.querySelector(".prescription-row");
+            await updateMedicationOptions(firstRow, "");
+            return;
+        }
+
         container.innerHTML = "";
 
-        purposeKeys.forEach((key, groupPosition) => {
+        for (const [groupPosition, key] of purposeKeys.entries()) {
             const oldIndex = key.match(/\d+/)[0];
             const row = templateRow.cloneNode(true);
 
-            row.querySelector('[name^="purpose_id"]').value =
-                getSavedValue(`purpose_id[${oldIndex}]`);
+            const purposeSelect = row.querySelector('[name^="purpose_id"]');
+            const purposeId = getSavedValue(`purpose_id[${oldIndex}]`);
+
+            purposeSelect.value = purposeId;
 
             row.querySelector('[name^="administration_method"]').value =
                 getSavedValue(`administration_method[${oldIndex}]`);
@@ -233,12 +295,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 ".medications-container"
             );
 
+            // Загружаем препараты по выбранной цели
+            await updateMedicationOptions(row, purposeId);
+
             const medicationTemplate = medicationsContainer
                 .querySelector(".medication-row")
                 .cloneNode(true);
 
             medicationsContainer.innerHTML = "";
 
+            // Восстанавливаем ранее выбранные препараты
             medicationIds.forEach((medicationId, medicationIndex) => {
                 const medicationRow = medicationTemplate.cloneNode(true);
                 const selects = medicationRow.querySelectorAll("select");
@@ -260,12 +326,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
             container.appendChild(row);
             updateGroupNames(row, groupPosition);
-        });
+        }
     }
+    // Изменение цели терапии
+    container.addEventListener("change", function (event) {
+        if (!event.target.matches(".purpose-select")) return;
+
+        const group = event.target.closest(".prescription-row");
+        const purposeId = event.target.value;
+
+        updateMedicationOptions(group, purposeId);
+    });
 
     container.addEventListener("click", function (event) {
         const target = event.target;
 
+        // Добавление совместного препарата
         const addMedicationButton = target.closest(".add-medication");
 
         if (addMedicationButton) {
@@ -295,6 +371,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+        // Удаление препарата
         const removeMedicationButton = target.closest(".remove-medication");
 
         if (removeMedicationButton) {
@@ -309,6 +386,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+        // Удаление назначения
         const removePrescriptionButton = target.closest(".remove-prescription");
 
         if (removePrescriptionButton) {
@@ -321,7 +399,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    addButton.addEventListener("click", function () {
+    // Добавление нового назначения
+    addButton.addEventListener("click", async function () {
         const firstRow = container.querySelector(".prescription-row");
 
         if (!firstRow) return;
@@ -341,9 +420,10 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         container.appendChild(newRow);
+
+        await updateMedicationOptions(newRow, "");
         reindexGroups();
     });
 
-    restoreGroups();
-    reindexGroups();
+    restoreGroups().then(reindexGroups);
 });

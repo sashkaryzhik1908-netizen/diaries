@@ -4,6 +4,23 @@ from flask_login import UserMixin
 
 from app.extensions import db
 
+# __Связь моделей целей терапии и препаратов__
+therapy_purpose_medication = db.Table(
+    "therapy_purpose_medication",
+    db.Column(
+        "purpose_id",
+        db.Integer,
+        db.ForeignKey("therapy_purpose.id"),
+        primary_key=True,
+    ),
+    db.Column(
+        "medication_id",
+        db.Integer,
+        db.ForeignKey("therapy_medication.id"),
+        primary_key=True,
+    ),
+)
+
 
 # ___модели___
 class User(db.Model, UserMixin):
@@ -173,11 +190,21 @@ class DiaryEntry(db.Model):
 
 
 class TherapyPurpose(db.Model):
+    """Цели терапии"""
+
     __tablename__ = "therapy_purpose"
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), unique=True, nullable=False)
     output_value = db.Column(db.String(200), nullable=False)
+    medications = db.relationship(
+        "TherapyMedication",
+        secondary=therapy_purpose_medication,
+        back_populates="purposes",
+    )
+
+    def __str__(self):
+        return f"{self.name}"
 
 
 class TherapyGroup(db.Model):
@@ -228,3 +255,11 @@ class TherapyMedication(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), unique=True, nullable=False)
+    purposes = db.relationship(
+        "TherapyPurpose",
+        secondary=therapy_purpose_medication,
+        back_populates="medications",
+    )
+
+    def __str__(self):
+        return f"{self.name}"

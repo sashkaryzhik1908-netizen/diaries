@@ -17,8 +17,8 @@ def create_app(test_config=None):
     csrf.init_app(app)
     db.init_app(app)
 
-    import laboratory.models as laboratory_models  # noqa: F401
     import instrumental.models as instrumental_models  # noqa: F401
+    import laboratory.models as laboratory_models  # noqa: F401
     from app import models as models
     from app.admin import init_admin
     from app.routes.auth import auth_bp
@@ -27,8 +27,8 @@ def create_app(test_config=None):
     from app.routes.diary_entries import diary_entries_bp
     from app.routes.therapy import therapy_bp
     from app.services.diary_service import to_local_time
-    from laboratory.routes import laboratory_bp
     from instrumental.routes import instrumental_bp
+    from laboratory.routes import laboratory_bp
 
     migrate.init_app(app, db)
 

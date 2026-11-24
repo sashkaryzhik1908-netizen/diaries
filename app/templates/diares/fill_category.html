@@ -90,13 +90,16 @@
             </div>
         </div>
 
-        <div id="prescription-rows">
+        <div id="prescription-rows"
+                data-medications-url="{{ url_for('diary_entries.get_medications_by_purpose', purpose_id=0) }}">
             <div class="prescription-row border border-2 rounded-3 p-4 mb-4 shadow-sm"
                  data-group-index="0">
 
                 <div class="mb-3">
                     <label class="form-label">Цель терапии</label>
-                    <select name="purpose_id[0]" class="form-select" required>
+                    <select name="purpose_id[0]"
+                        class="form-select purpose-select"
+                        required>
                         <option value="">Выберите цель терапии</option>
                         {% for purpose in purposes %}
                         <option value="{{ purpose.id }}">{{ purpose.name }}</option>

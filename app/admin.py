@@ -1,10 +1,18 @@
-from flask_admin import AdminIndexView, expose
+from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
 from flask_login import current_user
 
-from app.extensions import admin, db
+from app.extensions import db
 
-from .models import Category, Diary, TemplateVariable, User, VariableOption
+from .models import (
+    Category,
+    Diary,
+    TemplateVariable,
+    TherapyMedication,
+    TherapyPurpose,
+    User,
+    VariableOption,
+)
 
 
 class SuperuserAdminIndexView(AdminIndexView):
@@ -142,16 +150,29 @@ class DiaryAdmin(SuperuserModelView):
     can_delete = True
 
 
+class TherapyPurposeAdmin(SuperuserModelView):
+    pass
+
+
+class TherapyMedicationAdmin(SuperuserModelView):
+    pass
+
+
 def init_admin(app):
+    admin = Admin(
+        index_view=SuperuserAdminIndexView(),
+    )
+
     admin.add_view(UserAdmin(User, db.session, name="Пользователи"))
     admin.add_view(CategoryAdmin(Category, db.session, name="Категории"))
     admin.add_view(
         TemplateVariableAdmin(TemplateVariable, db.session, name="Переменные")
     )
     admin.add_view(VariableOptionAdmin(VariableOption, db.session, name="Опции"))
-    admin.add_view(DiaryAdmin(Diary, db.session, name="Дневики"))
-
-    admin.init_app(
-        app,
-        index_view=SuperuserAdminIndexView(),
+    admin.add_view(DiaryAdmin(Diary, db.session, name="Дневники"))
+    admin.add_view(TherapyPurposeAdmin(TherapyPurpose, db.session, name="Цели терапии"))
+    admin.add_view(
+        TherapyMedicationAdmin(TherapyMedication, db.session, name="Препараты")
     )
+
+    admin.init_app(app)

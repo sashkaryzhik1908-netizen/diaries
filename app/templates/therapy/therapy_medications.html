@@ -19,7 +19,17 @@
         <div class="list-group">
             {% for medication in medications %}
                 <div class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>{{ medication.name }}</span>
+                    <div>
+                        <strong>{{ medication.name }}</strong>
+
+                        <div class="text-muted small">
+                            {% for purpose in medication.purposes %}
+                                {{ purpose.name }}{% if not loop.last %}, {% endif %}
+                            {% else %}
+                                Без назначенных целей терапии
+                            {% endfor %}
+                        </div>
+                    </div>
 
                     <div class="d-flex gap-2">
                         <a href="{{ url_for('therapy.edit_therapy_medication', medication_id=medication.id) }}"

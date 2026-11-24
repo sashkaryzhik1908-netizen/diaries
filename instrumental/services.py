@@ -6,9 +6,9 @@ from sqlalchemy import select
 
 from app.extensions import db
 from instrumental.models import (
-    InstrumentalSource,
-    InstrumentalIndicator,
     InstrumentalAlias,
+    InstrumentalIndicator,
+    InstrumentalSource,
 )
 
 
@@ -101,9 +101,7 @@ def generate_instrumental_text(source_text):
     if not source_text:
         return ""
 
-    indicators = db.session.scalars(
-        select(InstrumentalIndicator)
-    ).all()
+    indicators = db.session.scalars(select(InstrumentalIndicator)).all()
 
     # Словарь названий и алиасов.
     names = {}
@@ -138,12 +136,10 @@ def generate_instrumental_text(source_text):
         title = header.group(1).strip()
 
         end = (
-            headers[index + 1].start()
-            if index + 1 < len(headers)
-            else len(source_text)
+            headers[index + 1].start() if index + 1 < len(headers) else len(source_text)
         )
 
-        block = source_text[header.end():end].strip()
+        block = source_text[header.end() : end].strip()
 
         # Извлечение даты.
         date_match = re.search(

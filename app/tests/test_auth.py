@@ -25,6 +25,7 @@ def test_register_user(client, app):
         "/register",
         data={
             "username": "test_user",
+            "name": "Test User",
             "password": "123456",
             "confirm": "123456",
             "submit": "Зарегистрироваться",

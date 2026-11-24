@@ -66,7 +66,17 @@ def delete_therapy_purpose(purpose):
 
 
 # Получение списка препаратов
-def get_therapy_medications():
+def get_therapy_medications(purpose_id):
+    return db.session.scalars(
+        select(TherapyMedication)
+        .join(TherapyMedication.purposes)
+        .where(TherapyPurpose.id == purpose_id)
+        .order_by(TherapyMedication.name)
+    ).all()
+
+
+# Получение полного списка препаратов
+def get_all_therapy_medications():
     return db.session.scalars(
         select(TherapyMedication).order_by(TherapyMedication.name)
     ).all()
@@ -83,8 +93,12 @@ def get_existing_medication(name, exclude_id=None):
 
 
 # Добавление препарата
-def create_therapy_medication(name):
-    medication = TherapyMedication(name=name)
+def create_therapy_medication(name, purpose_ids):
+    purposes = db.session.scalars(
+        select(TherapyPurpose).where(TherapyPurpose.id.in_(purpose_ids))
+    ).all()
+
+    medication = TherapyMedication(name=name, purposes=purposes)
 
     db.session.add(medication)
     db.session.commit()
@@ -93,8 +107,13 @@ def create_therapy_medication(name):
 
 
 # Редактирование препарата
-def update_therapy_medication(medication, name):
+def update_therapy_medication(medication, name, purpose_ids):
+    purposes = db.session.scalars(
+        select(TherapyPurpose).where(TherapyPurpose.id.in_(purpose_ids))
+    ).all()
+
     medication.name = name
+    medication.purposes = purposes
 
     db.session.commit()
 

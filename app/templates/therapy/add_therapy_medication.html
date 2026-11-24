@@ -26,7 +26,32 @@
                 <div class="text-danger">{{ error }}</div>
             {% endfor %}
         </div>
+        <div class="mb-3">
+        <label class="form-label">Цели терапии</label>
 
+        <select id="purpose-select" class="form-select">
+            <option value="">Выберите цель терапии</option>
+            {% for purpose in form.purpose.choices %}
+                <option value="{{ purpose[0] }}">
+                    {{ purpose[1] }}
+                </option>
+            {% endfor %}
+        </select><br>
+
+        <button type="button"
+                id="add-purpose"
+                class="btn btn-outline-primary mt-2">
+            Добавить
+        </button>
+
+        <div class="list-group mt-3" id="selected-purposes">
+        </div>
+
+        <input type="hidden"
+            name="purpose_ids"
+            id="purpose-results"
+            value="{{ medication.purposes | map(attribute='id') | join(',') if medication else '' }}">
+    </div>
         <div class="d-flex gap-2">
             {{ form.submit(class="btn btn-primary") }}
 

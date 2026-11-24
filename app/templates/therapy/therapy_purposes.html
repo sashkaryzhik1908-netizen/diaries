@@ -24,7 +24,15 @@
                 <p class="card-text mb-3">
                     {{ purpose.output_value }}
                 </p>
-            
+                <div class="mb-3">
+                    <strong>Препараты:</strong>
+
+                    {% for medication in purpose.medications %}
+                        {{ medication.name }}{% if not loop.last %}, {% endif %}
+                    {% else %}
+                        <span class="text-muted">Не добавлены</span>
+                    {% endfor %}
+                </div>
                 <a href="{{ url_for('therapy.edit_therapy_purpose', purpose_id=purpose.id) }}"
                    class="btn btn-warning btn-sm">
                     Редактировать

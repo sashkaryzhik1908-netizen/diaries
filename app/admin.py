@@ -81,6 +81,7 @@ class CategoryAdmin(SuperuserModelView):
     )
     column_searchable_list = ("name",)
     column_default_sort = ("id", False)
+    column_editable_list = ("order",)
     form_columns = (
         "name",
         "slug",

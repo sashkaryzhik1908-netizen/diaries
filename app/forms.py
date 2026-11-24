@@ -123,6 +123,7 @@ class CategoryForm(FlaskForm):
         "Шаблон категории",
         validators=[DataRequired()],
     )
+    order = IntegerField("Порядок расположения категории", validators=[DataRequired()])
     submit = SubmitField("Сохранить изменения")
 
 

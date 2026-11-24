@@ -35,6 +35,7 @@ def add_category():
             name=form.name.data,
             slug=form.slug.data,
             template=form.template.data,
+            order=form.order.data,
         )
 
         flash("Шаблон категории успешно сохранён.", "success")
@@ -59,6 +60,7 @@ def edit_category(category_id):
             name=form.name.data,
             slug=form.slug.data,
             template=form.template.data,
+            order=form.order.data,
         )
 
         flash("Шаблон категории успешно изменён.", "success")

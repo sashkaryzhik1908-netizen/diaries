@@ -124,15 +124,15 @@
                             </select>
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-md-3 dose-field">
                             <input type="text"
-                                   name="dose[0][]"
-                                   class="form-control"
-                                   placeholder="доза"
-                                   required>
+                                name="dose[0][]"
+                                class="form-control"
+                                placeholder="доза"
+                                required>
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-md-3 unit-field">
                             <select name="unit[0][]"
                                     class="form-select"
                                     required>
@@ -144,7 +144,51 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        <div class="col-12 antibacterial-fields d-none">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <label class="form-label">Способ введения</label>
+                                <select name="medication_method[0][]"
+                                        class="form-select">
+                                    <option value="">Выберите способ введения</option>
+                                    <option value="внутривенно">Внутривенно</option>
+                                    <option value="внутривенно капельно">
+                                        Внутривенно капельно
+                                    </option>
+                                    <option value="внутримышечно">Внутримышечно</option>
+                                    <option value="подкожно">Подкожно</option>
+                                    <option value="перорально">Перорально</option>
+                                    <option value="через назогастральный зонд">
+                                        Через назогастральный зонд
+                                    </option>
+                                    <option value="ингаляционно">Ингаляционно</option>
+                                    <option value="наружно">Наружно</option>
+                                </select>
+                            </div>
 
+                                <div class="col-md-4">
+                                    <label class="form-label">Кратность</label>
+                                    <select name="medication_frequency[0][]"
+                                            class="form-select">
+                                        <option value="">Не указана</option>
+                                        {% for number in range(1, 11) %}
+                                        <option value="{{ number }} р/сут">
+                                            {{ number }} р/сут
+                                        </option>
+                                        {% endfor %}
+                                        <option value="непрерывно">Непрерывно</option>
+                                        <option value="по показаниям">По показаниям</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">Дата начала</label>
+                                    <input type="date"
+                                        name="medication_start_date[0][]"
+                                        class="form-control">
+                                </div>
+                            </div>
+                        </div>
                         <div class="col-md-2">
                             <button type="button"
                                     class="btn btn-outline-danger remove-medication">
@@ -163,62 +207,66 @@
 
                 <hr>
 
-                <div class="mb-3">
-                    <label class="form-label">Способ введения</label>
-                    <select name="administration_method[0]"
-                            class="form-select"
-                            required>
-                        <option value="">Выберите способ введения</option>
-                        <option value="внутривенно">Внутривенно</option>
-                        <option value="внутривенно капельно">Внутривенно капельно</option>
-                        <option value="внутривенно, путём микроструйной перфузионной подачи">
-                            Микроструйно
-                        </option>
-                        <option value="внутривенно, путём микроструйной перфузионной подачи, под контролем показателей гемодинамики с целевым срАД не менее 65 мм рт.ст">
-                            Микроструйно под контролем АД
-                        </option>
-                        <option value="внутримышечно">Внутримышечно</option>
-                        <option value="подкожно">Подкожно</option>
-                        <option value="перорально">Перорально</option>
-                        <option value="через назогастральный зонд">
-                            Через назогастральный зонд
-                        </option>
-                        <option value="ингаляционно">Ингаляционно</option>
-                        <option value="наружно">Наружно</option>
-                    </select>
-                </div>
+                    <div class="general-prescription-fields">
 
-                <div class="mb-3">
-                    <label class="form-label">
-                        Кратность
-                        <span class="text-muted fw-normal small">
-                            (необязательное поле)
-                        </span>
-                    </label>
+                        <div class="mb-3">
+                            <label class="form-label">Способ введения</label>
+                            <select name="administration_method[0]"
+                                    class="form-select"
+                                    required>
+                                <option value="">Выберите способ введения</option>
+                                <option value="внутривенно">Внутривенно</option>
+                                <option value="внутривенно капельно">Внутривенно капельно</option>
+                                <option value="внутривенно, путём микроструйной перфузионной подачи">
+                                    Микроструйно
+                                </option>
+                                <option value="внутривенно, путём микроструйной перфузионной подачи, под контролем показателей гемодинамики с целевым срАД не менее 65 мм рт.ст">
+                                    Микроструйно под контролем АД
+                                </option>
+                                <option value="внутримышечно">Внутримышечно</option>
+                                <option value="подкожно">Подкожно</option>
+                                <option value="перорально">Перорально</option>
+                                <option value="через назогастральный зонд">
+                                    Через назогастральный зонд
+                                </option>
+                                <option value="ингаляционно">Ингаляционно</option>
+                                <option value="наружно">Наружно</option>
+                            </select>
+                        </div>
 
-                    <select name="frequency[0]" class="form-select">
-                        <option value="">Не указана</option>
-                        {% for number in range(1, 11) %}
-                        <option value="{{ number }} р/сут">
-                            {{ number }} р/сут
-                        </option>
-                        {% endfor %}
-                        <option value="непрерывно">Непрерывно</option>
-                        <option value="по показаниям">По показаниям</option>
-                    </select>
-                </div>
+                        <div class="mb-3">
+                            <label class="form-label">
+                                Кратность
+                                <span class="text-muted fw-normal small">
+                                    (необязательное поле)
+                                </span>
+                            </label>
 
-                <div class="mb-3">
-                    <label class="form-label">
-                        Дата начала
-                        <span class="text-muted fw-normal small">
-                            (необязательное поле)
-                        </span>
-                    </label>
-                    <input type="date"
-                           name="start_date[0]"
-                           class="form-control">
-                </div>
+                            <select name="frequency[0]" class="form-select">
+                                <option value="">Не указана</option>
+                                {% for number in range(1, 11) %}
+                                <option value="{{ number }} р/сут">
+                                    {{ number }} р/сут
+                                </option>
+                                {% endfor %}
+                                <option value="непрерывно">Непрерывно</option>
+                                <option value="по показаниям">По показаниям</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                Дата начала
+                                <span class="text-muted fw-normal small">
+                                    (необязательное поле)
+                                </span>
+                            </label>
+                            <input type="date"
+                                name="start_date[0]"
+                                class="form-control">
+                        </div>
+
+                    </div>
 
                 <button type="button"
                         class="btn btn-outline-danger remove-prescription">

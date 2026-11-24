@@ -41,7 +41,9 @@
             {{ form.template.label(class="form-label") }}
             {{ form.template(class="form-control", rows="10") }}
         </div>
-
+        <div class="mb-3">
+            {{ form.order(class="form-control", placeholder=form.order.label.text) }}
+        </div>
         {{ form.submit(class="btn btn-primary") }}
     </form>
 

@@ -6,6 +6,16 @@ from app.extensions import db
 from app.models import TherapyMedication, TherapyPurpose
 
 
+# Проверка анальгетической терапии
+def is_analgesic_therapy(purpose):
+    return purpose.name.lower() == "анальгетическая"
+
+
+# Проверка антибактериальной терапии
+def is_antibacterial_therapy(purpose):
+    return purpose.name.lower() == "антибактериальная"
+
+
 # Обработка назначений
 def process_prescriptions(form):
     errors = []
@@ -105,10 +115,7 @@ def process_prescriptions(form):
     # Обработка каждой группы назначений
     for index in group_indexes:
         # Получение цели терапии
-        purpose_id = form.get(
-            f"purpose_id[{index}]",
-            "",
-        )
+        purpose_id = form.get(f"purpose_id[{index}]", "")
 
         if not purpose_id.isdigit() or int(purpose_id) not in purposes_dict:
             errors.append("Выберите корректную цель терапии.")
@@ -125,6 +132,154 @@ def process_prescriptions(form):
             errors.append("Добавьте хотя бы один препарат.")
             continue
 
+        # Анальгетическая терапия
+        if is_analgesic_therapy(purpose):
+            medication_parts = []
+            group_valid = True
+
+            for medication_id in medication_ids:
+                if (
+                    not medication_id.isdigit()
+                    or int(medication_id) not in medications_dict
+                ):
+                    errors.append("Выберите корректный препарат.")
+                    group_valid = False
+                    continue
+
+                medication = medications_dict[int(medication_id)]
+                medication_parts.append(medication.name)
+
+            if not group_valid:
+                continue
+
+            # Формирование текста анальгетической терапии
+            group_text = f"({', '.join(medication_parts)})"
+
+            groups.append(
+                {
+                    "name": purpose.output_value,
+                    "text": group_text,
+                    "type": "analgesic",
+                }
+            )
+
+            continue
+
+        # Антибактериальная терапия
+        if is_antibacterial_therapy(purpose):
+            methods = form.getlist(f"medication_method[{index}][]")
+            frequencies = form.getlist(f"medication_frequency[{index}][]")
+            start_dates = form.getlist(f"medication_start_date[{index}][]")
+
+            if not (
+                len(medication_ids)
+                == len(doses)
+                == len(units)
+                == len(methods)
+                == len(frequencies)
+                == len(start_dates)
+            ):
+                errors.append("Количество препаратов и их параметров не совпадает.")
+                continue
+
+            medication_parts = []
+            group_valid = True
+
+            # Проверка каждого препарата антибактериальной терапии
+            for (
+                medication_id,
+                dose,
+                unit,
+                method,
+                frequency,
+                start_date,
+            ) in zip(
+                medication_ids,
+                doses,
+                units,
+                methods,
+                frequencies,
+                start_dates,
+            ):
+                dose = dose.strip()
+                frequency = frequency.strip()
+                start_date = start_date.strip()
+
+                if (
+                    not medication_id.isdigit()
+                    or int(medication_id) not in medications_dict
+                ):
+                    errors.append("Выберите корректный препарат.")
+                    group_valid = False
+                    continue
+
+                if not dose:
+                    errors.append("Укажите дозу каждого препарата.")
+                    group_valid = False
+                    continue
+
+                if unit not in allowed_units:
+                    errors.append("Выберите корректную единицу измерения.")
+                    group_valid = False
+                    continue
+
+                if method not in allowed_methods:
+                    errors.append(
+                        "Выберите корректный способ введения каждого препарата."
+                    )
+                    group_valid = False
+                    continue
+
+                if frequency and frequency not in allowed_frequencies:
+                    errors.append("Выберите корректную кратность.")
+                    group_valid = False
+                    continue
+
+                formatted_date = ""
+
+                if start_date:
+                    try:
+                        formatted_date = datetime.strptime(
+                            start_date,
+                            "%Y-%m-%d",
+                        ).strftime("%d.%m.%Y")
+                    except ValueError:
+                        errors.append(
+                            "Укажите корректную дату начала каждого препарата."
+                        )
+                        group_valid = False
+                        continue
+
+                medication = medications_dict[int(medication_id)]
+
+                # Формирование текста отдельного препарата
+                medication_text = f"{medication.name} {dose} {unit} {method}"
+
+                if frequency:
+                    medication_text += f" {frequency}"
+
+                if formatted_date:
+                    medication_text += f" (с {formatted_date})"
+
+                medication_parts.append(medication_text)
+
+            if not group_valid:
+                continue
+
+            # Объединение препаратов через запятую
+            group_text = ", ".join(medication_parts)
+
+            groups.append(
+                {
+                    "name": purpose.output_value,
+                    "text": group_text,
+                    "type": "antibacterial",
+                }
+            )
+
+            continue
+
+        # Проверка количества препаратов, дозировок и единиц измерения
         if len(medication_ids) != len(doses) or len(medication_ids) != len(units):
             errors.append(
                 "Количество препаратов, дозировок и единиц измерения не совпадает."
@@ -201,7 +356,6 @@ def process_prescriptions(form):
                     start_date,
                     "%Y-%m-%d",
                 ).strftime("%d.%m.%Y")
-
             except ValueError:
                 errors.append("Укажите корректную дату начала.")
                 continue
@@ -221,6 +375,7 @@ def process_prescriptions(form):
             {
                 "name": purpose.output_value,
                 "text": group_text,
+                "type": "general",
             }
         )
 
@@ -242,6 +397,10 @@ def process_prescriptions(form):
         for number, group in enumerate(groups, start=3):
             if "тромботических" in group["name"]:
                 lines.append(f"{number}. {group['name']} {group['text']};")
+
+            elif group["type"] == "analgesic":
+                lines.append(f"{number}. {group['name']} {group['text']};")
+
             else:
                 lines.append(f"{number}. {group['name']}: {group['text']};")
 
@@ -251,11 +410,11 @@ def process_prescriptions(form):
                 (
                     f"{len(groups) + 3}. Мониторинг витальных функций: "
                     "АД, ЧСС/пульс, сатурация О2, почасовой диурез, "
-                    "Т-тела, ЭКГ-мониторинг во II отведении 3-мя электродами;"
+                    "Т-тела, ЭКГ-мониторинг во II отведении 3-ми электродами;"
                 ),
                 (
                     f"{len(groups) + 4}. Мероприятия общего ухода, "
-                    "суточный мониторинг, контроль лабораторных данных."
+                    f"суточный мониторинг, контроль лабораторных данных."
                 ),
             ]
         )

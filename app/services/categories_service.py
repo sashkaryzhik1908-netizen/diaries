@@ -1,16 +1,15 @@
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from app.extensions import db
 from app.models import Category, DiaryEntry, TemplateVariable, VariableOption
 
 
-def create_category(name, slug, template):
-    last_order = db.session.scalar(select(func.max(Category.order))) or 0
+def create_category(name, slug, template, order):
 
     category = Category(
         name=name,
         slug=slug,
-        order=last_order + 1,
+        order=order,
         template=template,
     )
 
@@ -20,10 +19,11 @@ def create_category(name, slug, template):
     return category
 
 
-def update_category(category, name, slug, template):
+def update_category(category, name, slug, order, template):
     category.name = name
     category.slug = slug
     category.template = template
+    category.order = order
 
     db.session.commit()
 

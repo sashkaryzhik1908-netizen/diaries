@@ -1,5 +1,6 @@
-// Данные ранее отправленной формы
-const savedFormData = window.savedFormData;
+
+ // Данные ранее отправленной формы
+const savedFormData = window.savedFormData || {};
 
 // ==========================================
 // MULTISELECT
@@ -155,11 +156,62 @@ document.addEventListener("DOMContentLoaded", function () {
     const medicationsUrl = container.dataset.medicationsUrl;
 
     function getSavedValue(name) {
-        return savedFormData[name]?.[0] || "";
+        const saved = savedFormData[name];
+        return Array.isArray(saved) ? saved[0] || "" : saved || "";
     }
 
     function getSavedList(name) {
-        return savedFormData[name] || [];
+        const saved = savedFormData[name];
+        return Array.isArray(saved) ? saved : saved ? [saved] : [];
+    }
+
+    // Отображение полей терапии
+    function toggleAntibacterialFields(group) {
+        const purposeSelect = group.querySelector(".purpose-select");
+
+        if (!purposeSelect) return;
+
+        const selectedPurpose = (
+            purposeSelect.selectedOptions[0]?.text || ""
+        ).trim().toLowerCase();
+
+        const isAntibacterial = selectedPurpose.includes("антибактериал");
+        const isAnalgesic = selectedPurpose.includes("анальгетическ");
+
+        // Индивидуальные поля антибактериальной терапии
+        group.querySelectorAll(".antibacterial-fields").forEach(fields => {
+            fields.classList.toggle("d-none", !isAntibacterial);
+
+            fields.querySelectorAll("select, input").forEach(field => {
+                field.disabled = !isAntibacterial;
+            });
+        });
+
+        // Общие поля назначения
+        group.querySelectorAll(".general-prescription-fields").forEach(fields => {
+            const hideFields = isAntibacterial || isAnalgesic;
+
+            fields.classList.toggle("d-none", hideFields);
+
+            fields.querySelectorAll("select, input").forEach(field => {
+                field.disabled = hideFields;
+            });
+        });
+
+        // Доза и единица измерения
+        group.querySelectorAll(".dose-field, .unit-field").forEach(fields => {
+            fields.classList.toggle("d-none", isAnalgesic);
+
+            fields.querySelectorAll("select, input").forEach(field => {
+                field.disabled = isAnalgesic;
+
+                if (isAnalgesic) {
+                    field.removeAttribute("required");
+                } else {
+                    field.setAttribute("required", "");
+                }
+            });
+        });
     }
 
     // Получение препаратов по цели терапии
@@ -215,6 +267,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    // Обновление названий полей
     function updateGroupNames(row, index) {
         row.dataset.groupIndex = index;
 
@@ -231,16 +284,33 @@ document.addEventListener("DOMContentLoaded", function () {
             `start_date[${index}]`;
 
         row.querySelectorAll(".medication-row").forEach(medicationRow => {
-            const selects = medicationRow.querySelectorAll("select");
+            medicationRow.querySelector(
+                'select[name^="medication_id"]'
+            ).name = `medication_id[${index}][]`;
 
-            selects[0].name = `medication_id[${index}][]`;
-            selects[1].name = `unit[${index}][]`;
+            medicationRow.querySelector(
+                'select[name^="unit"]'
+            ).name = `unit[${index}][]`;
 
-            medicationRow.querySelector("input").name =
-                `dose[${index}][]`;
+            medicationRow.querySelector(
+                'input[name^="dose"]'
+            ).name = `dose[${index}][]`;
+
+            medicationRow.querySelector(
+                'select[name^="medication_method"]'
+            ).name = `medication_method[${index}][]`;
+
+            medicationRow.querySelector(
+                'select[name^="medication_frequency"]'
+            ).name = `medication_frequency[${index}][]`;
+
+            medicationRow.querySelector(
+                'input[name^="medication_start_date"]'
+            ).name = `medication_start_date[${index}][]`;
         });
     }
 
+    // Перенумерация назначений
     function reindexGroups() {
         container.querySelectorAll(".prescription-row").forEach(
             (row, index) => updateGroupNames(row, index)
@@ -254,13 +324,18 @@ document.addEventListener("DOMContentLoaded", function () {
             .sort((a, b) => Number(a.match(/\d+/)[0]) -
                 Number(b.match(/\d+/)[0]));
 
-        const templateRow = container
-            .querySelector(".prescription-row")
-            .cloneNode(true);
+        const firstRow = container.querySelector(".prescription-row");
+
+        if (!firstRow) return;
+
+        const templateRow = firstRow.cloneNode(true);
 
         if (!purposeKeys.length) {
-            const firstRow = container.querySelector(".prescription-row");
             await updateMedicationOptions(firstRow, "");
+
+            toggleAntibacterialFields(firstRow);
+
+            reindexGroups();
             return;
         }
 
@@ -291,6 +366,18 @@ document.addEventListener("DOMContentLoaded", function () {
             const doses = getSavedList(`dose[${oldIndex}][]`);
             const units = getSavedList(`unit[${oldIndex}][]`);
 
+            const medicationMethods = getSavedList(
+                `medication_method[${oldIndex}][]`
+            );
+
+            const medicationFrequencies = getSavedList(
+                `medication_frequency[${oldIndex}][]`
+            );
+
+            const medicationStartDates = getSavedList(
+                `medication_start_date[${oldIndex}][]`
+            );
+
             const medicationsContainer = row.querySelector(
                 ".medications-container"
             );
@@ -307,13 +394,49 @@ document.addEventListener("DOMContentLoaded", function () {
             // Восстанавливаем ранее выбранные препараты
             medicationIds.forEach((medicationId, medicationIndex) => {
                 const medicationRow = medicationTemplate.cloneNode(true);
-                const selects = medicationRow.querySelectorAll("select");
 
-                selects[0].value = medicationId;
-                selects[1].value = units[medicationIndex] || "";
+                const medicationSelect = medicationRow.querySelector(
+                    'select[name^="medication_id"]'
+                );
 
-                medicationRow.querySelector("input").value =
-                    doses[medicationIndex] || "";
+                const unitSelect = medicationRow.querySelector(
+                    'select[name^="unit"]'
+                );
+
+                const doseInput = medicationRow.querySelector(
+                    'input[name^="dose"]'
+                );
+
+                const methodSelect = medicationRow.querySelector(
+                    'select[name^="medication_method"]'
+                );
+
+                const frequencySelect = medicationRow.querySelector(
+                    'select[name^="medication_frequency"]'
+                );
+
+                const startDateInput = medicationRow.querySelector(
+                    'input[name^="medication_start_date"]'
+                );
+
+                medicationSelect.value = medicationId;
+                unitSelect.value = units[medicationIndex] || "";
+                doseInput.value = doses[medicationIndex] || "";
+
+                if (methodSelect) {
+                    methodSelect.value =
+                        medicationMethods[medicationIndex] || "";
+                }
+
+                if (frequencySelect) {
+                    frequencySelect.value =
+                        medicationFrequencies[medicationIndex] || "";
+                }
+
+                if (startDateInput) {
+                    startDateInput.value =
+                        medicationStartDates[medicationIndex] || "";
+                }
 
                 medicationsContainer.appendChild(medicationRow);
             });
@@ -325,9 +448,12 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             container.appendChild(row);
+
             updateGroupNames(row, groupPosition);
+            toggleAntibacterialFields(row);
         }
     }
+
     // Изменение цели терапии
     container.addEventListener("change", function (event) {
         if (!event.target.matches(".purpose-select")) return;
@@ -335,6 +461,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const group = event.target.closest(".prescription-row");
         const purposeId = event.target.value;
 
+        toggleAntibacterialFields(group);
         updateMedicationOptions(group, purposeId);
     });
 
@@ -363,9 +490,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 select.selectedIndex = 0;
             });
 
-            newMedication.querySelector("input").value = "";
+            newMedication.querySelectorAll("input").forEach(input => {
+                input.value = "";
+            });
 
             medicationsContainer.appendChild(newMedication);
+
+            toggleAntibacterialFields(group);
             reindexGroups();
 
             return;
@@ -421,7 +552,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         container.appendChild(newRow);
 
+        toggleAntibacterialFields(newRow);
+
         await updateMedicationOptions(newRow, "");
+
         reindexGroups();
     });
 

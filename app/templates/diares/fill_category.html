@@ -337,11 +337,20 @@
                        value="{{ form_data.get(variable.name, [''])[0] }}">
 
                 {% elif variable.field_type == "text" %}
-                <input type="text"
-                       class="form-control"
-                       name="{{ variable.name }}"
-                       value="{{ form_data.get(variable.name, [''])[0] }}"
-                       {% if variable.required %}required{% endif %}>
+                    {% if variable.name == "diagnosis" %}
+                        <textarea
+                            class="form-control"
+                            name="{{ variable.name }}"
+                            rows="10"
+                            {% if variable.required %}required{% endif %}
+                        ></textarea>
+                    {% else %}
+                        <input type="text"
+                            class="form-control"
+                            name="{{ variable.name }}"
+                            value="{{ form_data.get(variable.name, [''])[0] }}"
+                            {% if variable.required %}required{% endif %}>
+                    {% endif %}
 
                 {% elif variable.field_type == "date" %}
                 <input type="date"

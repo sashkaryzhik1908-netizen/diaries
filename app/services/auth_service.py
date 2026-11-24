@@ -38,7 +38,7 @@ def update_user(user, username, name, password=None):
         return False
 
     user.username = username
-    name = name
+    user.name = name
 
     if password:
         user.password = generate_password_hash(password)

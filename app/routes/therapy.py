@@ -156,7 +156,8 @@ def add_therapy_medication():
     form.purpose.choices = [(p.id, p.name) for p in TherapyPurpose.query.all()]
     if form.validate_on_submit():
         name = form.name.data.strip()
-        purpose_ids = form.purpose.data
+        purpose_ids = request.form.get("purpose_ids", "").split(",")
+        purpose_ids = [int(purpose_id) for purpose_id in purpose_ids if purpose_id]
 
         existing_medication = therapy_service.get_existing_medication(name)
 
@@ -200,7 +201,8 @@ def edit_therapy_medication(medication_id):
 
     if form.validate_on_submit():
         name = form.name.data.strip()
-        purpose_ids = form.purpose.data
+        purpose_ids = request.form.get("purpose_ids", "").split(",")
+        purpose_ids = [int(purpose_id) for purpose_id in purpose_ids if purpose_id]
 
         existing_medication = therapy_service.get_existing_medication(
             name,

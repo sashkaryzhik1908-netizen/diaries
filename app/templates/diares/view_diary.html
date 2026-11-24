@@ -74,12 +74,17 @@
 <div id="diary-content">
 
     {% set prescriptions = namespace(entry=None) %}
+    {% set diagnosis = namespace(entry=None) %}
 
     {% for entry in entries %}
 
         {% if entry.category.slug == "prescriptions" %}
 
             {% set prescriptions.entry = entry %}
+
+        {% elif entry.category.slug == "diagnosis" %}
+
+            {% set diagnosis.entry = entry %}
 
         {% else %}
 
@@ -93,13 +98,15 @@
         <p class="mb-1"><strong>Лабораторные исследования</strong></p>
         <p class="mb-3" style="white-space: pre-line;">{{ diary.laboratory_source.result_text | trim }}</p>
     {% endif %}
+
     {% if diary.instrumental_source and diary.instrumental_source.result_text %}
-    <p class="mb-1"><strong>Инструментальные исследования</strong></p>
-    <p class="mb-3" style="white-space: pre-line;">{{ diary.instrumental_source.result_text | trim }}</p>
+        <p class="mb-1"><strong>Инструментальные исследования</strong></p>
+        <p class="mb-3" style="white-space: pre-line;">{{ diary.instrumental_source.result_text | trim }}</p>
     {% endif %}
+
     {% if syndromes %}
         <p class="mb-1"></p>
-    <p class="mb-1"><strong>Ведущие патологические синдромы</strong></p>
+        <p class="mb-1"><strong>Ведущие патологические синдромы</strong></p>
 
         <ol style="list-style-type: disc; margin-bottom: 0; padding-left: 20px;">
             {% for syndrome in syndromes %}
@@ -110,6 +117,10 @@
         <div class="mb-3"></div>
     {% endif %}
 
+    {% if diagnosis.entry %}
+        <p class="mb-3" style="white-space: pre-line;">{{ diagnosis.entry.text | trim }}</p>
+    {% endif %}
+
     {% if prescriptions.entry %}
         <p class="mb-3" style="white-space: pre-line;">{{ prescriptions.entry.text | trim }}</p>
     {% endif %}
@@ -118,11 +129,13 @@
             and not (diary.laboratory_source and diary.laboratory_source.result_text)
             and not (diary.instrumental_source and diary.instrumental_source.result_text)
             and not syndromes %}
-    <p class="text-muted">Дневник пока пуст.</p>
+        <p class="text-muted">Дневник пока пуст.</p>
     {% endif %}
-    <p class="mb-3" style="white-space: pre-line;">
-    <strong>{{ diary.user_name }}</strong>
+
+   <p class="mb-3">
+    <strong>дежурный реаниматолог: {{ diary.user.name }}</strong>
     </p>
+
 </div>
 
     {% if entries

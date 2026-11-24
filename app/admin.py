@@ -4,7 +4,7 @@ from flask_login import current_user
 
 from app.extensions import admin, db
 
-from .models import Category, TemplateVariable, User, VariableOption
+from .models import Category, Diary, TemplateVariable, User, VariableOption
 
 
 class SuperuserAdminIndexView(AdminIndexView):
@@ -53,7 +53,7 @@ class UserAdmin(SuperuserModelView):
     column_sortable_list = ("id", "username", "is_superuser", "is_admin")
     form_columns = ("is_admin", "is_superuser")
     can_create = False
-    can_delete = False
+    can_delete = True
 
 
 class CategoryAdmin(SuperuserModelView):
@@ -129,6 +129,19 @@ class VariableOptionAdmin(SuperuserModelView):
     )
 
 
+class DiaryAdmin(SuperuserModelView):
+    column_labels = {
+        "id": "ID",
+        "created_at": "Создан",
+        "user.username": "Пользователь",
+    }
+    column_list = ("id", "created_at", "user.username")
+    column_default_sort = ("id", False)
+    form_columns = ("created_at",)
+    can_create = False
+    can_delete = True
+
+
 def init_admin(app):
     admin.add_view(UserAdmin(User, db.session, name="Пользователи"))
     admin.add_view(CategoryAdmin(Category, db.session, name="Категории"))
@@ -136,6 +149,7 @@ def init_admin(app):
         TemplateVariableAdmin(TemplateVariable, db.session, name="Переменные")
     )
     admin.add_view(VariableOptionAdmin(VariableOption, db.session, name="Опции"))
+    admin.add_view(DiaryAdmin(Diary, db.session, name="Дневики"))
 
     admin.init_app(
         app,

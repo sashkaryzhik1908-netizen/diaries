@@ -29,6 +29,7 @@ def register():
         return redirect(url_for("auth.index"))
     if form.validate_on_submit():
         username = form.username.data
+        name = form.name.data
         password = form.password.data
 
         existing_user = get_user_by_username(username)
@@ -37,7 +38,7 @@ def register():
             flash("Такое имя пользователя уже занято.", "warning")
             return render_template("auth/register.html", form=form)
 
-        user = create_user(username, password)
+        user = create_user(username, name, password)
 
         login_user(user)
 
@@ -58,6 +59,7 @@ def edit_user():
         success = update_user(
             user=user,
             username=form.username.data,
+            name=form.name.data,
             password=form.password.data,
         )
 

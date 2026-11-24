@@ -23,7 +23,14 @@
                         <p class="text-danger mt-1">{{ error }}</p>
                     {% endfor %}
                 </div>
+                <div class="mb-3">
+                    {{ form.name.label(class="form-label") }}
+                    {{ form.name(class="form-control") }}
 
+                    {% for error in form.name.errors %}
+                        <p class="text-danger mt-1">{{ error }}</p>
+                    {% endfor %}
+                </div>
                 <hr>
 
                 <h5 class="mb-3">Смена пароля</h5>

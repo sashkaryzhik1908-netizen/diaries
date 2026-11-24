@@ -18,9 +18,10 @@ def authenticate_user(username, password):
     return None
 
 
-def create_user(username, password):
+def create_user(username, name, password):
     user = User(
         username=username,
+        name=name,
         password=generate_password_hash(password),
     )
 
@@ -30,13 +31,14 @@ def create_user(username, password):
     return user
 
 
-def update_user(user, username, password=None):
+def update_user(user, username, name, password=None):
     existing_user = get_user_by_username(username)
 
     if existing_user and existing_user.id != user.id:
         return False
 
     user.username = username
+    name = name
 
     if password:
         user.password = generate_password_hash(password)

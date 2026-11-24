@@ -6,6 +6,22 @@ from app.extensions import db
 
 
 # ___модели___
+class User(db.Model, UserMixin):
+    __tablename__ = "user"
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    name = db.Column(db.String(100), default="Врачев В.В")
+    password = db.Column(db.String(500), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    is_superuser = db.Column(db.Boolean, default=False, nullable=False)
+    diaries = db.relationship(
+        "Diary",
+        backref="user",
+        cascade="all, delete-orphan",
+    )
+
+
 class Category(db.Model):
     __tablename__ = "category"
 
@@ -72,21 +88,6 @@ class VariableOption(db.Model):
 
     def __repr__(self):
         return f"{self.output_value}"
-
-
-class User(db.Model, UserMixin):
-    __tablename__ = "user"
-
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(500), nullable=False)
-    is_admin = db.Column(db.Boolean, default=False, nullable=False)
-    is_superuser = db.Column(db.Boolean, default=False, nullable=False)
-    diaries = db.relationship(
-        "Diary",
-        backref="user",
-        cascade="all, delete-orphan",
-    )
 
 
 class Diary(db.Model):

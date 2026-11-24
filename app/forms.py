@@ -26,6 +26,13 @@ class RegisterForm(FlaskForm):
             Length(max=100),
         ],
     )
+    name = StringField(
+        "ФИО отображаемое при заполнении дневника",
+        validators=[
+            DataRequired(),
+            Length(max=100),
+        ],
+    )
     password = PasswordField(
         "Пароль",
         validators=[
@@ -43,6 +50,13 @@ class RegisterForm(FlaskForm):
 class EditUserForm(FlaskForm):
     username = StringField(
         "Имя пользователя",
+        validators=[
+            DataRequired(),
+            Length(max=100),
+        ],
+    )
+    name = StringField(
+        "ФИО отображаемое при заполнении дневника",
         validators=[
             DataRequired(),
             Length(max=100),

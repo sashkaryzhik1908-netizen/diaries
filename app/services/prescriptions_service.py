@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import select
 
 from app.extensions import db
-from app.models import TherapyMedication, TherapyPurpose
+from app.models import TherapyMedication, TherapyPurpose, TherapySource
 
 
 # Проверка анальгетической терапии
@@ -27,38 +27,15 @@ def process_prescriptions(form):
     hydrotation = form.get("hydrotation", "")
     volume = form.get("volume", "")
 
-    allowed_units = {
-        "мл",
-        "мг",
-        "гр",
-        "ед",
-        "МЕ",
-        "мкг",
-        "л",
-        "мкг/кг/мин",
+    sources = db.session.scalars(select(TherapySource)).all()
+
+    sources_dict = {
+        source.name: {value.name for value in source.values} for source in sources
     }
 
-    allowed_methods = {
-        "внутривенно",
-        "внутривенно капельно",
-        "внутривенно, путём микроструйной перфузионной подачи",
-        "внутримышечно",
-        "подкожно",
-        "перорально",
-        "через назогастральный зонд",
-        "ингаляционно",
-        "наружно",
-        (
-            "внутривенно, путём микроструйной перфузионной подачи, "
-            "под контролем показателей гемодинамики с целевым срАД не менее 65 мм рт.ст"
-        ),
-    }
-
-    allowed_frequencies = {
-        *(f"{number} р/сут" for number in range(1, 11)),
-        "непрерывно",
-        "по показаниям",
-    }
+    allowed_units = sources_dict["Единицы измерения"]
+    allowed_methods = sources_dict["Способы введения"]
+    allowed_frequencies = sources_dict["Кратность"]
 
     # Получение индексов групп назначений
     group_indexes = sorted(
@@ -385,7 +362,7 @@ def process_prescriptions(form):
     if not errors:
         lines = [
             "В плане интенсивной терапии:",
-            f"1. Режим {regime}, диета {diet};",
+            f"1. {regime}, диета {diet};",
             (
                 f"2. Инфузионная терапия кристаллоидами, с учетом физ потребности, "
                 f"текущих и патологических потерь, в режиме {hydrotation}, "

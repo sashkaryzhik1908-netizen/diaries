@@ -12,6 +12,8 @@ from .models import (
     TherapyPurpose,
     User,
     VariableOption,
+    TherapySource,
+    TherapySourceValue,
 )
 
 
@@ -158,6 +160,31 @@ class TherapyPurposeAdmin(SuperuserModelView):
 class TherapyMedicationAdmin(SuperuserModelView):
     pass
 
+class TherapySourceAdmin(SuperuserModelView):
+    column_labels = {
+        "id": "ID",
+        "name": "Название группы параметров",
+    }
+    column_list = ("id", "name")
+    column_searchable_list = ("name",)
+    column_default_sort = ("id", False)
+    form_columns = ("name",)
+
+class TherapySourceValueAdmin(SuperuserModelView):
+    column_labels = {
+        "id": "ID",
+        "name": "Название значения параметра",
+        "therapy_source.name": "Группа параметров",
+    }
+    column_list = ("id", "name", "source.name")
+    column_searchable_list = ("name",  "source.name")
+    column_default_sort = ("id", False)
+    column_filters = ("id", "name", "source.name")
+    column_sortable_list = ("source.name",)
+    form_columns = (
+        "name",
+        "source",
+    )
 
 def init_admin(app):
     admin = Admin(
@@ -174,6 +201,12 @@ def init_admin(app):
     admin.add_view(TherapyPurposeAdmin(TherapyPurpose, db.session, name="Цели терапии"))
     admin.add_view(
         TherapyMedicationAdmin(TherapyMedication, db.session, name="Препараты")
+    )
+    admin.add_view(
+        TherapySourceAdmin(TherapySource, db.session, name="Группы параметров терапии")
+    )
+    admin.add_view(
+        TherapySourceValueAdmin(TherapySourceValue, db.session, name="Значения параметров терапии")
     )
 
     admin.init_app(app)

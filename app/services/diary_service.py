@@ -13,6 +13,8 @@ from app.models import (
     TemplateVariable,
     TherapyMedication,
     TherapyPurpose,
+    TherapySource,
+    TherapySourceValue,
 )
 
 
@@ -71,6 +73,20 @@ def get_therapy_purposes():
 def get_therapy_medications():
     return db.session.scalars(
         select(TherapyMedication).order_by(TherapyMedication.name)
+    ).all()
+
+
+#Получение группы дополнительных параметров терапии
+def get_therapy_sources():
+    return db.session.scalars(
+        select(TherapySource).order_by(TherapySource.id)
+    ).all()
+
+
+#Получение значений дополнительных параметров терапии
+def get_therapy_source_values():
+    return db.session.scalars(
+        select(TherapySourceValue).order_by(TherapySourceValue.id)
     ).all()
 
 

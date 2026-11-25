@@ -263,3 +263,47 @@ class TherapyMedication(db.Model):
 
     def __str__(self):
         return f"{self.name}"
+
+
+# Режим
+# Диета
+# Режим восполнения
+# Единицы измерения
+# Способы введения
+# Кратность
+
+class TherapySource(db.Model):
+    """Справочник групп дополнительных параметров терапии."""
+    __tablename__ = "therapy_source"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), unique=True, nullable=False)
+
+    values = db.relationship(
+        "TherapySourceValue",
+        back_populates="source",
+        cascade="all, delete-orphan",
+    )
+
+    def __str__(self):
+        return f"{self.name}"
+
+class TherapySourceValue(db.Model):
+    """Справочник значений дополнительных параметров терапии."""
+    __tablename__ = "therapy_source_value"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+
+    source_id = db.Column(
+        db.Integer,
+        db.ForeignKey("therapy_source.id"),
+        nullable=False,
+    )
+    source = db.relationship(
+        "TherapySource",
+        back_populates="values",
+    )
+
+    def __str__(self):
+        return f"{self.name}"

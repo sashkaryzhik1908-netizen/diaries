@@ -210,3 +210,27 @@ class TherapyMedicationForm(FlaskForm):
         choices=[],
     )
     submit = SubmitField("Сохранить")
+
+class TherapySourceForm(FlaskForm):
+    name = StringField(
+        "Название группы дополнительных параметров терапии",
+        validators=[
+            DataRequired(),
+            Length(max=200),
+        ],
+    )
+    submit = SubmitField("Сохранить")
+
+class TherapySourceValueForm(FlaskForm):
+    name = StringField(
+        "Название значения дополнительного параметра терапии",
+        validators=[
+            DataRequired(),
+            Length(max=200),
+        ],
+    )
+    source = SelectField(
+        "Группа дополнительного параметра терапии",
+        choices=[],
+    )
+    submit = SubmitField("Сохранить")

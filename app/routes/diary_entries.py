@@ -24,6 +24,8 @@ from app.services.diary_service import (
     get_diary_for_user,
     get_therapy_medications,
     get_therapy_purposes,
+    get_therapy_sources,
+    get_therapy_source_values,
     save_diary_entry,
     update_diary_entry,
 )
@@ -63,9 +65,14 @@ def fill_category(diary_id, category_id):
 
         medications = get_therapy_medications()
 
+        sources = get_therapy_sources()
+        source_values = get_therapy_source_values()
+
     else:
         purposes = []
         medications = []
+        sources = []
+        source_values = []
 
     if request.method == "POST":
         # Сохраняем все отправленные поля формы
@@ -123,6 +130,8 @@ def fill_category(diary_id, category_id):
                     generated_text=generated_text,
                     purposes=purposes,
                     medications=medications,
+                    sources=sources,
+                    source_values=source_values,
                     form_data=form_data,
                 )
 
@@ -149,6 +158,8 @@ def fill_category(diary_id, category_id):
         generated_text=generated_text,
         purposes=purposes,
         medications=medications,
+        sources=sources,
+        source_values=source_values,
         form_data=form_data,
     )
 

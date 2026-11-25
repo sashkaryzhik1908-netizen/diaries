@@ -1,5 +1,4 @@
-
- // Данные ранее отправленной формы
+// Данные ранее отправленной формы
 const savedFormData = window.savedFormData || {};
 
 // ==========================================
@@ -177,6 +176,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const isAntibacterial = selectedPurpose.includes("антибактериал");
         const isAnalgesic = selectedPurpose.includes("анальгетическ");
+
+        // Изменение названия кнопки добавления препарата
+            const addMedicationButton = group.querySelector(".add-medication");
+
+            if (addMedicationButton) {
+                addMedicationButton.textContent = isAntibacterial
+                    ? "Добавить антибактериальный препарат"
+                    : "Добавить препарат для совместного назначения";
+            }
 
         // Индивидуальные поля антибактериальной терапии
         group.querySelectorAll(".antibacterial-fields").forEach(fields => {

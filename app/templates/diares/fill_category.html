@@ -146,6 +146,12 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="button"
+                                    class="btn btn-outline-danger remove-medication w-100">
+                                Удалить
+                            </button>
+                        </div>
                         <!-- Совместные препараты антибактериальной терапии -->
                         <div class="col-12 additional-medications-container d-none">
 
@@ -157,7 +163,7 @@
                             </button>
 
                         </div>
-                        <div class="col-md-10 antibacterial-fields d-none">
+                        <div class="col-12 antibacterial-fields d-none">
                             <div class="row g-2">
                                 <div class="col-md-4">
                                     <label class="form-label">{{ sources["Способы введения"].name }}</label>
@@ -194,12 +200,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button type="button"
-                                    class="btn btn-outline-danger remove-medication w-100">
-                                Удалить
-                            </button>
-                        </div>
+
                     </div>
                 </div>
 

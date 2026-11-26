@@ -28,8 +28,8 @@
         <select id="purpose-select" class="form-select">
             <option value="">Выберите цель терапии</option>
             {% for purpose in form.purpose.choices %}
-                <option value="{{ purpose[0] }}">
-                    {{ purpose[1] }}
+                <option value="{{ purpose.value }}">
+                    {{ purpose.label }}
                 </option>
             {% endfor %}
         </select><br>

@@ -300,6 +300,7 @@ def test_process_prescriptions(app):
 
         medication = TherapyMedication(
             name="Препарат",
+            purposes=[purpose],
         )
 
         db_objects = [purpose, medication]
@@ -311,7 +312,7 @@ def test_process_prescriptions(app):
             {
                 "purpose_id[0]": str(purpose.id),
                 "medication_id[0][]": [str(medication.id)],
-                "dose[0][]": ["100 мг"],
+                "dose[0][]": ["100"],
                 "unit[0][]": ["мг"],
                 "administration_method[0]": "внутривенно",
                 "frequency[0]": "2 р/сут",
@@ -655,7 +656,10 @@ def test_process_prescriptions_different_medications_and_doses(app):
             name="Терапия",
             output_value="Терапия",
         )
-        medication = TherapyMedication(name="Цефтриаксон")
+        medication = TherapyMedication(
+            name="Цефтриаксон",
+            purposes=[purpose],
+        )
         db.session.add_all([purpose, medication])
         db.session.commit()
 
@@ -664,7 +668,7 @@ def test_process_prescriptions_different_medications_and_doses(app):
                 ("purpose_id[0]", str(purpose.id)),
                 ("medication_id[0][]", str(medication.id)),
                 ("medication_id[0][]", str(medication.id)),
-                ("dose[0][]", "1 г"),
+                ("dose[0][]", "1"),
                 ("unit[0][]", "гр"),
                 ("unit[0][]", "гр"),
             ]
@@ -693,7 +697,7 @@ def test_process_prescriptions_invalid_medication(app):
             [
                 ("purpose_id[0]", str(purpose.id)),
                 ("medication_id[0][]", "999999"),
-                ("dose[0][]", "1 г"),
+                ("dose[0][]", "1"),
                 ("unit[0][]", "гр"),
             ]
         )
@@ -711,7 +715,10 @@ def test_process_prescriptions_empty_dose(app):
             name="Терапия",
             output_value="Терапия",
         )
-        medication = TherapyMedication(name="Цефтриаксон")
+        medication = TherapyMedication(
+            name="Цефтриаксон",
+            purposes=[purpose],
+        )
         db.session.add_all([purpose, medication])
         db.session.commit()
 
@@ -719,7 +726,7 @@ def test_process_prescriptions_empty_dose(app):
             [
                 ("purpose_id[0]", str(purpose.id)),
                 ("medication_id[0][]", str(medication.id)),
-                ("dose[0][]", "   "),
+                ("dose[0][]", " "),
                 ("unit[0][]", "гр"),
             ]
         )
@@ -737,7 +744,10 @@ def test_process_prescriptions_invalid_method(app):
             name="Терапия",
             output_value="Терапия",
         )
-        medication = TherapyMedication(name="Цефтриаксон")
+        medication = TherapyMedication(
+            name="Цефтриаксон",
+            purposes=[purpose],
+        )
         db.session.add_all([purpose, medication])
         db.session.commit()
 
@@ -745,7 +755,7 @@ def test_process_prescriptions_invalid_method(app):
             [
                 ("purpose_id[0]", str(purpose.id)),
                 ("medication_id[0][]", str(medication.id)),
-                ("dose[0][]", "1 г"),
+                ("dose[0][]", "1"),
                 ("unit[0][]", "гр"),
                 ("administration_method[0]", "неизвестный способ"),
                 ("frequency[0]", "1 р/д"),
@@ -765,7 +775,10 @@ def test_process_prescriptions_invalid_frequency(app):
             name="Терапия",
             output_value="Терапия",
         )
-        medication = TherapyMedication(name="Цефтриаксон")
+        medication = TherapyMedication(
+            name="Цефтриаксон",
+            purposes=[purpose],
+        )
         db.session.add_all([purpose, medication])
         db.session.commit()
 
@@ -773,7 +786,7 @@ def test_process_prescriptions_invalid_frequency(app):
             [
                 ("purpose_id[0]", str(purpose.id)),
                 ("medication_id[0][]", str(medication.id)),
-                ("dose[0][]", "1 г"),
+                ("dose[0][]", "1"),
                 ("unit[0][]", "гр"),
                 ("administration_method[0]", "внутривенно"),
                 ("frequency[0]", "каждый час"),
@@ -793,7 +806,10 @@ def test_process_prescriptions_invalid_date(app):
             name="Терапия",
             output_value="Терапия",
         )
-        medication = TherapyMedication(name="Цефтриаксон")
+        medication = TherapyMedication(
+            name="Цефтриаксон",
+            purposes=[purpose],
+        )
         db.session.add_all([purpose, medication])
         db.session.commit()
 
@@ -801,7 +817,7 @@ def test_process_prescriptions_invalid_date(app):
             [
                 ("purpose_id[0]", str(purpose.id)),
                 ("medication_id[0][]", str(medication.id)),
-                ("dose[0][]", "1 г"),
+                ("dose[0][]", "1"),
                 ("unit[0][]", "гр"),
                 ("administration_method[0]", "внутривенно"),
                 ("frequency[0]", "1 р/сут"),
@@ -813,3 +829,90 @@ def test_process_prescriptions_invalid_date(app):
 
         assert generated_text is None
         assert "Укажите корректную дату начала." in errors
+
+
+# Проверка препарата, не связанного с выбранной целью терапии
+def test_process_prescriptions_foreign_medication(app):
+    with app.app_context():
+        purpose = TherapyPurpose(
+            name="Терапия",
+            output_value="Терапия",
+        )
+        other_purpose = TherapyPurpose(
+            name="Другая терапия",
+            output_value="Другая терапия",
+        )
+        medication = TherapyMedication(
+            name="Препарат",
+            purposes=[other_purpose],
+        )
+        db.session.add_all([purpose, other_purpose, medication])
+        db.session.commit()
+
+        form = MultiDict(
+            {
+                "purpose_id[0]": str(purpose.id),
+                "medication_id[0][]": [str(medication.id)],
+                "dose[0][]": ["100"],
+                "unit[0][]": ["мг"],
+                "administration_method[0]": "внутривенно",
+                "frequency[0]": "2 р/сут",
+            }
+        )
+        generated_text, errors = process_prescriptions(form)
+
+        assert generated_text is None
+        assert (
+            "Выберите препараты, соответствующие цели терапии «Терапия»."
+            in errors
+        )
+
+
+# Проверка некорректной дозировки препарата
+def test_process_category_form_drug_invalid_dose(app):
+    with app.app_context():
+        category = Category(
+            name="Терапия",
+            slug="therapy",
+            order=1,
+            template="",
+        )
+        db.session.add(category)
+        db.session.commit()
+
+        variable = TemplateVariable(
+            category_id=category.id,
+            name="drug",
+            label="Препараты",
+            field_type="multiselect",
+            required=True,
+        )
+        db.session.add(variable)
+        db.session.commit()
+
+        option = VariableOption(
+            variable_id=variable.id,
+            value="Норадреналин",
+            output_value="норадреналин",
+        )
+        db.session.add(option)
+        db.session.commit()
+
+        form = MultiDict(
+            [
+                ("drug", str(option.id)),
+                (f"dose_{option.id}", "-0.5"),
+            ]
+        )
+
+        values, errors = process_category_form(
+            form,
+            [variable],
+            category,
+        )
+
+        assert values["drug"] == ""
+        assert (
+            "Дозировка препарата «Норадреналин» должна быть положительным числом."
+            in errors
+        )

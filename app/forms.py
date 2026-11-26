@@ -10,6 +10,7 @@ from wtforms import (
     SubmitField,
     TextAreaField,
 )
+from wtforms.fields.choices import SelectChoice
 
 from wtforms.validators import (
     DataRequired,
@@ -145,11 +146,11 @@ class TemplateVariableForm(FlaskForm):
     field_type = SelectField(
         "Тип поля",
         choices=[
-            ("select", "Один вариант"),
-            ("multiselect", "Несколько вариантов"),
-            ("text", "Текст"),
-            ("number", "Число"),
-            ("date", "Дата"),
+            SelectChoice("select", "Один вариант"),
+            SelectChoice("multiselect", "Несколько вариантов"),
+            SelectChoice("text", "Текст"),
+            SelectChoice("number", "Число"),
+            SelectChoice("date", "Дата"),
         ],
         validators=[DataRequired()],
     )

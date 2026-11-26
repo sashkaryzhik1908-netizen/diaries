@@ -207,47 +207,6 @@ class TherapyPurpose(db.Model):
         return f"{self.name}"
 
 
-class TherapyGroup(db.Model):
-    """Группа препаратов с общей целью терапии."""
-
-    __tablename__ = "therapy_group"
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    diary_id = db.Column(
-        db.Integer,
-        db.ForeignKey("diary.id"),
-        nullable=False,
-    )
-
-    purpose_id = db.Column(
-        db.Integer,
-        db.ForeignKey("therapy_purpose.id"),
-        nullable=False,
-    )
-
-    position = db.Column(db.Integer, nullable=False)
-
-    purpose = db.relationship("TherapyPurpose")
-
-    diary = db.relationship(
-        "Diary",
-        backref=db.backref(
-            "therapy_groups",
-            cascade="all, delete-orphan",
-            order_by="TherapyGroup.position",
-        ),
-    )
-
-    __table_args__ = (
-        db.UniqueConstraint(
-            "diary_id",
-            "purpose_id",
-            name="unique_diary_therapy_purpose",
-        ),
-    )
-
-
 class TherapyMedication(db.Model):
     """Справочник препаратов."""
 
@@ -272,8 +231,10 @@ class TherapyMedication(db.Model):
 # Способы введения
 # Кратность
 
+
 class TherapySource(db.Model):
     """Справочник групп дополнительных параметров терапии."""
+
     __tablename__ = "therapy_source"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -288,8 +249,10 @@ class TherapySource(db.Model):
     def __str__(self):
         return f"{self.name}"
 
+
 class TherapySourceValue(db.Model):
     """Справочник значений дополнительных параметров терапии."""
+
     __tablename__ = "therapy_source_value"
 
     id = db.Column(db.Integer, primary_key=True)

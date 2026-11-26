@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from app.extensions import db
 from app.models import TherapyMedication, TherapyPurpose, TherapySource
-
+from app.services.validators import is_valid_dose
 
 # Проверка анальгетической терапии
 def is_analgesic_therapy(purpose):
@@ -32,6 +32,20 @@ def process_prescriptions(form):
     sources_dict = {
         source.name: {value.name for value in source.values} for source in sources
     }
+
+    # Проверка наличия обязательных справочников
+    required_sources = (
+        "Единицы измерения",
+        "Способы введения",
+        "Кратность",
+    )
+
+    for source_name in required_sources:
+        if source_name not in sources_dict:
+            errors.append(f"Отсутствует справочник «{source_name}».")
+
+    if errors:
+        return None, errors
 
     allowed_units = sources_dict["Единицы измерения"]
     allowed_methods = sources_dict["Способы введения"]
@@ -107,6 +121,29 @@ def process_prescriptions(form):
 
         if not medication_ids:
             errors.append("Добавьте хотя бы один препарат.")
+            continue
+
+        # Проверка существования препаратов
+        if any(
+            not medication_id.isdigit()
+            or int(medication_id) not in medications_dict
+            for medication_id in medication_ids
+        ):
+            errors.append("Выберите корректный препарат.")
+            continue
+
+        # Проверка принадлежности препаратов цели терапии
+        allowed_medication_ids = {
+            medication.id for medication in purpose.medications
+        }
+
+        if any(
+            int(medication_id) not in allowed_medication_ids
+            for medication_id in medication_ids
+        ):
+            errors.append(
+                f"Выберите препараты, соответствующие цели терапии «{purpose.name}»."
+            )
             continue
 
         # Анальгетическая терапия
@@ -192,6 +229,12 @@ def process_prescriptions(form):
 
                 if not dose:
                     errors.append("Укажите дозу каждого препарата.")
+                    group_valid = False
+                    continue
+
+                # Проверка корректности дозировки
+                if not is_valid_dose(dose):
+                    errors.append("Дозировка должна быть положительным числом.")
                     group_valid = False
                     continue
 
@@ -284,6 +327,11 @@ def process_prescriptions(form):
 
             if not dose:
                 errors.append("Укажите дозу каждого препарата.")
+                group_valid = False
+                continue
+
+            if not is_valid_dose(dose):
+                errors.append("Дозировка должна быть положительным числом.")
                 group_valid = False
                 continue
 

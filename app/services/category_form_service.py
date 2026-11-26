@@ -4,6 +4,7 @@ from sqlalchemy import select
 
 from app.extensions import db
 from app.models import VariableOption
+from app.services.validators import is_valid_dose
 
 
 # Обработка обычных категорий
@@ -56,6 +57,7 @@ def process_category_form(form, variables, category):
                 )
 
             # Обработка препаратов
+            # Обработка препаратов
             if variable.name == "drug":
                 drug_parts = []
 
@@ -72,12 +74,24 @@ def process_category_form(form, variables, category):
                     ).strip()
 
                     if not dose:
-                        errors.append(f"Укажите дозировку препарата «{option.value}».")
+                        errors.append(
+                            f"Укажите дозировку препарата «{option.value}»."
+                        )
                         continue
 
-                    drug_parts.append(f"{option.output_value} в дозе {dose} мкг/кг/мин")
+                    # Проверка корректности дозировки
+                    if not is_valid_dose(dose):
+                        errors.append(
+                            f"Дозировка препарата «{option.value}» должна быть положительным числом."
+                        )
+                        continue
+
+                    drug_parts.append(
+                        f"{option.output_value} в дозе {dose} мкг/кг/мин"
+                    )
 
                 values[variable.name] = ", ".join(drug_parts)
+
 
             # Формирование значений остальных multiselect-полей
             else:

@@ -18,18 +18,10 @@
                 <div class="mb-3">
                     {{ form.username.label(class="form-label") }}
                     {{ form.username(class="form-control") }}
-
-                    {% for error in form.username.errors %}
-                        <p class="text-danger mt-1">{{ error }}</p>
-                    {% endfor %}
                 </div>
                 <div class="mb-3">
                     {{ form.name.label(class="form-label") }}
                     {{ form.name(class="form-control") }}
-
-                    {% for error in form.name.errors %}
-                        <p class="text-danger mt-1">{{ error }}</p>
-                    {% endfor %}
                 </div>
                 <hr>
 
@@ -42,19 +34,11 @@
                 <div class="mb-3">
                     {{ form.password.label(class="form-label") }}
                     {{ form.password(class="form-control") }}
-
-                    {% for error in form.password.errors %}
-                        <p class="text-danger mt-1">{{ error }}</p>
-                    {% endfor %}
                 </div>
 
                 <div class="mb-3">
                     {{ form.confirm.label(class="form-label") }}
                     {{ form.confirm(class="form-control") }}
-
-                    {% for error in form.confirm.errors %}
-                        <p class="text-danger mt-1">{{ error }}</p>
-                    {% endfor %}
                 </div>
 
                 {{ form.submit(class="btn btn-primary") }}

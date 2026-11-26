@@ -1,7 +1,9 @@
+import json
+
 from sqlalchemy import select
 
 from app.extensions import db
-from app.models import TherapyGroup, TherapyMedication, TherapyPurpose
+from app.models import Category, DiaryEntry, TherapyMedication, TherapyPurpose
 
 # ___Цели терапии___
 
@@ -46,14 +48,38 @@ def update_therapy_purpose(purpose, name, output_value):
     return purpose
 
 
+# Проверка использования справочника в назначениях
+def _is_prescription_item_used(field_prefix, item_id):
+    entries = db.session.scalars(
+        select(DiaryEntry.form_data)
+        .join(Category, DiaryEntry.category_id == Category.id)
+        .where(Category.slug == "prescriptions")
+    )
+
+    for raw_form_data in entries:
+        try:
+            form_data = json.loads(raw_form_data)
+        except (json.JSONDecodeError, TypeError):
+            # Не удаляем запись, если данные назначений повреждены
+            return True
+
+        if not isinstance(form_data, dict):
+            return True
+
+        for key, values in form_data.items():
+            if key.startswith(f"{field_prefix}[") and key.endswith("]"):
+                if not isinstance(values, list):
+                    return True
+
+                if str(item_id) in values:
+                    return True
+
+    return False
+
+
 # Проверка использования цели терапии
 def is_purpose_used(purpose_id):
-    return (
-        db.session.scalar(
-            select(TherapyGroup).where(TherapyGroup.purpose_id == purpose_id)
-        )
-        is not None
-    )
+    return _is_prescription_item_used("purpose_id", purpose_id)
 
 
 # Удаление цели терапии
@@ -91,6 +117,33 @@ def get_existing_medication(name, exclude_id=None):
 
     return db.session.scalar(query)
 
+# Проверка идентификаторов целей терапии
+def validate_purpose_ids(raw_purpose_ids):
+    try:
+        purpose_ids = [
+            int(purpose_id)
+            for purpose_id in raw_purpose_ids.split(",")
+            if purpose_id.strip()
+        ]
+    except ValueError:
+        return [], "Некорректные идентификаторы целей терапии."
+
+    if len(purpose_ids) != len(set(purpose_ids)):
+        return [], "Цели терапии не должны повторяться."
+
+    existing_ids = set(
+        db.session.scalars(
+            select(TherapyPurpose.id).where(
+                TherapyPurpose.id.in_(purpose_ids)
+            )
+        ).all()
+    )
+
+    if set(purpose_ids) != existing_ids:
+        return [], "Выбраны несуществующие цели терапии."
+
+    return purpose_ids, None
+
 
 # Добавление препарата
 def create_therapy_medication(name, purpose_ids):
@@ -118,6 +171,11 @@ def update_therapy_medication(medication, name, purpose_ids):
     db.session.commit()
 
     return medication
+
+
+# Проверка использования препарата
+def is_medication_used(medication_id):
+    return _is_prescription_item_used("medication_id", medication_id)
 
 
 # Удаление препарата

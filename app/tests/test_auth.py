@@ -1,5 +1,7 @@
 import pytest
 from werkzeug.security import generate_password_hash
+from flask import url_for
+from sqlalchemy import select
 
 from app.extensions import db
 from app.models import User
@@ -36,7 +38,7 @@ def test_register_user(client, app):
     assert response.status_code == 200
 
     with app.app_context():
-        user = User.query.filter_by(username="test_user").first()
+        user = db.session.scalar(select(User).where(User.username == "test_user"))
 
         assert user is not None
         assert user.is_admin is False
@@ -95,12 +97,19 @@ def test_logout_user(client, app):
 
 
 # Создание пользователя и вход в систему
-def create_and_login_user(client, app, username, is_admin):
+def create_and_login_user(
+    client,
+    app,
+    username,
+    is_admin,
+    is_superuser=False,
+):
     with app.app_context():
         user = User(
             username=username,
             password=generate_password_hash("123456"),
             is_admin=is_admin,
+            is_superuser=is_superuser,
         )
 
         db.session.add(user)
@@ -197,3 +206,85 @@ def test_admin_sees_all_cards(client, app):
     assert "Терапия".encode() in response.data
     assert "Препараты".encode() in response.data
     assert "Шаблоны".encode() in response.data
+
+
+# Суперпользователь не может удалить свой аккаунт
+def test_superuser_cannot_delete_account(client, app):
+    create_and_login_user(
+        client,
+        app,
+        username="superuser",
+        is_admin=True,
+        is_superuser=True,
+    )
+
+    response = client.post(
+        "/delete",
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert (
+        "Нельзя удалить учётную запись суперпользователя.".encode()
+        in response.data
+    )
+
+    with app.app_context():
+        user = db.session.scalar(
+            select(User).where(User.username == "superuser")
+        )
+
+        assert user is not None
+        assert user.is_superuser is True
+
+    with client.session_transaction() as session:
+        assert "_user_id" in session
+
+
+# Суперпользователь не видит кнопку удаления аккаунта
+def test_superuser_cannot_see_delete_account_button(client, app):
+    create_and_login_user(
+        client,
+        app,
+        username="superuser",
+        is_admin=True,
+        is_superuser=True,
+    )
+
+    with app.test_request_context():
+        profile_url = url_for("auth.user")
+
+    response = client.get(profile_url)
+
+    assert response.status_code == 200
+    assert "Суперпользователь".encode() in response.data
+    assert "Удалить аккаунт".encode() not in response.data
+
+
+# Проверка удаления аккаунта пользователя и администратора
+@pytest.mark.parametrize("is_admin", [False, True])
+def test_user_can_delete_account(client, app, is_admin):
+    create_and_login_user(
+        client,
+        app,
+        username="delete_user",
+        is_admin=is_admin,
+    )
+
+    response = client.post(
+        "/delete",
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert "Профиль удалён".encode() in response.data
+
+    with app.app_context():
+        user = db.session.scalar(
+            select(User).where(User.username == "delete_user")
+        )
+
+        assert user is None
+
+    with client.session_transaction() as session:
+        assert "_user_id" not in session

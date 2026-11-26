@@ -26,9 +26,9 @@
         <!-- Режим и диета -->
         <div class="row mb-3">
             <div class="col-md-6 mb-3">
-                <label for="regime" class="form-label">{{ sources[0].name }}</label>
+                <label for="regime" class="form-label">{{ sources["Режим"].name }}</label>
                 <select name="regime" id="regime" class="form-select" required>
-                    {% for value in sources[0].values %}
+                    {% for value in sources["Режим"].values %}
                     <option value="{{ value.name }}"
                             {% if form_data.get('regime', [''])[0] == value.name %}selected{% endif %}>
                         {{ value.name }}
@@ -38,9 +38,9 @@
             </div>
 
             <div class="col-md-6 mb-3">
-                <label for="diet" class="form-label">{{ sources[1].name }}</label>
+                <label for="diet" class="form-label">{{ sources["Диета"].name }}</label>
                 <select name="diet" id="diet" class="form-select" required>
-                    {% for value in sources[1].values %}
+                    {% for value in sources["Диета"].values %}
                     <option value="{{ value.name }}"
                             {% if form_data.get('diet', [''])[0] == value.name %}selected{% endif %}>
                         {{ value.name }}
@@ -54,7 +54,7 @@
         <div class="row mb-3">
             <div class="col-md-6 mb-3">
                 <label for="hydrotation" class="form-label">
-                    {{ sources[2].name }}
+                    {{ sources["Режим восполнения"].name }}
                 </label>
 
                 {% set selected_hydrotation = form_data.get('hydrotation', [''])[0] %}
@@ -63,7 +63,7 @@
                         id="hydrotation"
                         class="form-select"
                         required>
-                    {% for value in sources[2].values %}
+                    {% for value in sources["Режим восполнения"].values %}
                     <option value="{{ value.name }}"
                             {% if selected_hydrotation == value.name %}selected{% endif %}>
                         {{ value.name }}
@@ -138,7 +138,7 @@
                                     Выберите единицу измерения
                                 </option>
 
-                                {% for value in sources[3].values %}
+                                {% for value in sources["Единицы измерения"].values %}
                                 <option value="{{ value.name }}"
                                         {% if form_data.get('unit[0][]', [''])[0] == value.name %}selected{% endif %}>
                                     {{ value.name }}
@@ -150,10 +150,10 @@
                         <div class="col-md-10 antibacterial-fields d-none">
                             <div class="row g-2">
                                 <div class="col-md-4">
-                                    <label class="form-label">{{ sources[4].name }}</label>
+                                    <label class="form-label">{{ sources["Способы введения"].name }}</label>
                                     <select name="medication_method[0][]"
                                             class="form-select">
-                                        {% for value in sources[4].values %}
+                                        {% for value in sources["Способы введения"].values %}
                                         <option value="{{ value.name }}"
                                                 {% if form_data.get('medication_method[0][]', [''])[0] == value.name %}selected{% endif %}>
                                             {{ value.name }}
@@ -163,11 +163,11 @@
                                 </div>
 
                                 <div class="col-md-4">
-                                    <label class="form-label">{{ sources[5].name }}</label>
+                                    <label class="form-label">{{ sources["Кратность"].name }}</label>
                                     <select name="medication_frequency[0][]"
                                             class="form-select">
                                         <option value="">Не указана</option>
-                                        {% for value in sources[5].values %}
+                                        {% for value in sources["Кратность"].values %}
                                         <option value="{{ value.name }}"
                                                 {% if form_data.get('medication_frequency[0][]', [''])[0] == value.name %}selected{% endif %}>
                                             {{ value.name }}
@@ -204,11 +204,11 @@
 
                 <div class="general-prescription-fields">
                     <div class="mb-3">
-                        <label class="form-label">{{ sources[4].name }}</label>
+                        <label class="form-label">{{ sources["Способы введения"].name }}</label>
                         <select name="administration_method[0]"
                                 class="form-select">
                             <option value="">Не указана</option>
-                            {% for value in sources[4].values %}
+                            {% for value in sources["Способы введения"].values %}
                             <option value="{{ value.name }}"
                                     {% if form_data.get('administration_method[0]', [''])[0] == value.name %}selected{% endif %}>
                                 {{ value.name }}
@@ -218,11 +218,11 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">{{ sources[5].name }}</label>
+                        <label class="form-label">{{ sources["Кратность"].name }}</label>
                         <select name="frequency[0]"
                                 class="form-select">
                             <option value="">Не указана</option>
-                            {% for value in sources[5].values %}
+                            {% for value in sources["Кратность"].values %}
                             <option value="{{ value.name }}"
                                     {% if form_data.get('frequency[0]', [''])[0] == value.name %}selected{% endif %}>
                                 {{ value.name }}
@@ -314,12 +314,7 @@
 
                 {% elif variable.field_type == "text" %}
                     {% if variable.name == "diagnosis" %}
-                    <textarea
-                        class="form-control"
-                        name="{{ variable.name }}"
-                        rows="10"
-                        {% if variable.required %}required{% endif %}
-                    ></textarea>
+                    <textarea class="form-control" name="{{ variable.name }}" rows="10" {% if variable.required %}required{% endif %}>{{ form_data.get(variable.name, [''])[0] }}</textarea>
                     {% else %}
                     <input type="text"
                            class="form-control"

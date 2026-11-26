@@ -1,6 +1,7 @@
 from flask import Blueprint, flash, redirect, request, render_template, url_for
 from flask_login import login_required
 from flask_wtf import FlaskForm
+from wtforms.fields.choices import SelectChoice
 
 from app.decorators import admin_required
 from app.extensions import db
@@ -153,11 +154,22 @@ def list_therapy_medications():
 @admin_required
 def add_therapy_medication():
     form = TherapyMedicationForm()
-    form.purpose.choices = [(p.id, p.name) for p in TherapyPurpose.query.all()]
+    form.purpose.choices = [
+        SelectChoice(str(p.id), p.name) for p in therapy_service.get_therapy_purposes()
+    ]
     if form.validate_on_submit():
         name = form.name.data.strip()
-        purpose_ids = request.form.get("purpose_ids", "").split(",")
-        purpose_ids = [int(purpose_id) for purpose_id in purpose_ids if purpose_id]
+        purpose_ids, error = therapy_service.validate_purpose_ids(
+            request.form.get("purpose_ids", "")
+        )
+
+        if error:
+            flash(error, "warning")
+
+            return render_template(
+                "therapy/add_therapy_medication.html",
+                form=form,
+            )
 
         existing_medication = therapy_service.get_existing_medication(name)
 
@@ -194,15 +206,27 @@ def edit_therapy_medication(medication_id):
     medication = db.get_or_404(TherapyMedication, medication_id)
 
     form = TherapyMedicationForm(obj=medication)
-    form.purpose.choices = [(p.id, p.name) for p in TherapyPurpose.query.all()]
+    form.purpose.choices = [
+        SelectChoice(str(p.id), p.name) for p in therapy_service.get_therapy_purposes()
+    ]
 
     if request.method == "GET":
         form.purpose.data = [p.id for p in medication.purposes]
 
     if form.validate_on_submit():
         name = form.name.data.strip()
-        purpose_ids = request.form.get("purpose_ids", "").split(",")
-        purpose_ids = [int(purpose_id) for purpose_id in purpose_ids if purpose_id]
+        purpose_ids, error = therapy_service.validate_purpose_ids(
+            request.form.get("purpose_ids", "")
+        )
+
+        if error:
+            flash(error, "warning")
+
+            return render_template(
+                "therapy/add_therapy_medication.html",
+                form=form,
+                medication=medication,
+            )
 
         existing_medication = therapy_service.get_existing_medication(
             name,
@@ -246,6 +270,14 @@ def edit_therapy_medication(medication_id):
 @admin_required
 def delete_therapy_medication(medication_id):
     medication = db.get_or_404(TherapyMedication, medication_id)
+
+    # Проверка использования препарата в дневниках
+    if therapy_service.is_medication_used(medication.id):
+        flash(
+            "Нельзя удалить препарат, который используется в дневнике.",
+            "warning",
+        )
+        return redirect(url_for("therapy.list_therapy_medications"))
 
     therapy_service.delete_therapy_medication(medication)
 

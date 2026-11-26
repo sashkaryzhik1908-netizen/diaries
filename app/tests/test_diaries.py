@@ -1,4 +1,5 @@
 from flask import url_for
+from sqlalchemy import func, select
 from werkzeug.security import generate_password_hash
 
 from app.extensions import db
@@ -45,7 +46,7 @@ def test_create_diary(client, app):
     assert response.status_code == 200
 
     with app.app_context():
-        diary = Diary.query.first()
+        diary = db.session.scalar(select(Diary).limit(1))
 
         assert diary is not None
         assert diary.number == 1
@@ -76,13 +77,13 @@ def test_diary_numbering_per_user(client, app):
     client.post("/diaries/create")
 
     with app.app_context():
-        user1_diaries = (
-            Diary.query.filter_by(user_id=user1_id).order_by(Diary.number).all()
-        )
+        user1_diaries = db.session.scalars(
+            select(Diary).where(Diary.user_id == user1_id).order_by(Diary.number)
+        ).all()
 
-        user2_diaries = (
-            Diary.query.filter_by(user_id=user2_id).order_by(Diary.number).all()
-        )
+        user2_diaries = db.session.scalars(
+            select(Diary).where(Diary.user_id == user2_id).order_by(Diary.number)
+        ).all()
 
         assert [diary.number for diary in user1_diaries] == [1, 2]
         assert [diary.number for diary in user2_diaries] == [1]
@@ -162,7 +163,9 @@ def test_create_diary_commit_error(client, app, monkeypatch):
     assert response.location.endswith("/diaries")
 
     with app.app_context():
-        assert Diary.query.count() == 0
+        assert db.session.scalar(
+            select(func.count()).select_from(Diary)
+        ) == 0
 
 
 # Проверка успешного удаления дневника

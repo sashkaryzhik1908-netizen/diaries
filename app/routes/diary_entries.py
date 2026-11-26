@@ -68,10 +68,46 @@ def fill_category(diary_id, category_id):
         sources = get_therapy_sources()
         source_values = get_therapy_source_values()
 
+        if category.slug == "prescriptions":
+            purposes = get_therapy_purposes()
+
+            medications = get_therapy_medications()
+
+            sources = get_therapy_sources()
+            source_values = get_therapy_source_values()
+
+            # Проверка наличия обязательных справочников
+            required_sources = (
+                "Режим",
+                "Диета",
+                "Режим восполнения",
+                "Единицы измерения",
+                "Способы введения",
+                "Кратность",
+            )
+
+            missing_sources = [name for name in required_sources if name not in sources]
+
+            if missing_sources:
+                for name in missing_sources:
+                    flash(
+                        f"Отсутствует обязательный справочник «{name}». "
+                        "Обратитесь к администратору.",
+                        "warning",
+                    )
+
+                return redirect(url_for("diaries.view_diary", diary_id=diary.id))
+
+        else:
+            purposes = []
+            medications = []
+            sources = {}
+            source_values = []
+
     else:
         purposes = []
         medications = []
-        sources = []
+        sources = {}
         source_values = []
 
     if request.method == "POST":

@@ -41,9 +41,12 @@ def app():
     yield app
 
     with app.app_context():
-        db.session.remove()
-        db.drop_all()
-
+        try:
+            db.session.remove()
+            db.drop_all()
+        finally:
+            db.session.remove()
+            db.engine.dispose()
 
 @pytest.fixture
 def client(app):

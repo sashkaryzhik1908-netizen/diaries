@@ -79,10 +79,18 @@ def edit_user():
 def del_user():
     user = current_user._get_current_object()
 
-    logout_user()
-    delete_user(user)
+    # Защита учётной записи суперпользователя
+    if user.is_superuser:
+        flash(
+            "Нельзя удалить учётную запись суперпользователя.",
+            "warning",
+        )
+        return redirect(url_for("auth.user"))
 
-    flash("Профиль удален", "success")
+    delete_user(user)
+    logout_user()
+
+    flash("Профиль удалён", "success")
     return redirect(url_for("auth.index"))
 
 

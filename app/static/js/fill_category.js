@@ -154,6 +154,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const medicationsUrl = container.dataset.medicationsUrl;
 
+    // Хранилище активных запросов препаратов по группам
+    const medicationRequests = new WeakMap();
+
     function getSavedValue(name) {
         const saved = savedFormData[name];
         return Array.isArray(saved) ? saved[0] || "" : saved || "";
@@ -222,58 +225,94 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Получение препаратов по цели терапии
-    async function updateMedicationOptions(group, purposeId) {
-        const medicationSelects = group.querySelectorAll(
-            '.medication-row select[name^="medication_id"]'
-        );
+   // Получение препаратов по цели терапии
+async function updateMedicationOptions(group, purposeId) {
+    // Отмена предыдущего запроса для этой группы
+    const previousController = medicationRequests.get(group);
 
-        medicationSelects.forEach(select => {
-            select.innerHTML = '<option value="">Загрузка препаратов...</option>';
-            select.disabled = true;
+    if (previousController) {
+        previousController.abort();
+    }
+
+    const controller = new AbortController();
+    medicationRequests.set(group, controller);
+
+    // Получение актуальных полей выбора препаратов
+    const getMedicationSelects = () => group.querySelectorAll(
+        '.medication-row select[name^="medication_id"]'
+    );
+
+    getMedicationSelects().forEach(select => {
+        select.innerHTML = '<option value="">Загрузка препаратов...</option>';
+        select.disabled = true;
+    });
+
+    if (!purposeId) {
+        getMedicationSelects().forEach(select => {
+            select.innerHTML =
+                '<option value="">Сначала выберите цель терапии</option>';
+            select.disabled = false;
         });
 
-        if (!purposeId) {
-            medicationSelects.forEach(select => {
-                select.innerHTML =
-                    '<option value="">Сначала выберите цель терапии</option>';
-                select.disabled = false;
-            });
+        medicationRequests.delete(group);
+        return;
+    }
+
+    try {
+        const url = medicationsUrl.replace(/0$/, purposeId);
+
+        const response = await fetch(url, {
+            signal: controller.signal
+        });
+
+        if (!response.ok) {
+            throw new Error("Ошибка получения препаратов");
+        }
+
+        const medications = await response.json();
+
+        // Игнорирование устаревшего ответа
+        if (medicationRequests.get(group) !== controller) {
             return;
         }
 
-        try {
-            const url = medicationsUrl.replace(/0$/, purposeId);
-            const response = await fetch(url);
+        getMedicationSelects().forEach(select => {
+            select.innerHTML = '<option value="">Выберите препарат</option>';
 
-            if (!response.ok) {
-                throw new Error("Ошибка получения препаратов");
-            }
-
-            const medications = await response.json();
-
-            medicationSelects.forEach(select => {
-                select.innerHTML = '<option value="">Выберите препарат</option>';
-
-                medications.forEach(medication => {
-                    const option = document.createElement("option");
-                    option.value = medication.id;
-                    option.textContent = medication.name;
-                    select.appendChild(option);
-                });
-
-                select.disabled = false;
+            medications.forEach(medication => {
+                const option = document.createElement("option");
+                option.value = medication.id;
+                option.textContent = medication.name;
+                select.appendChild(option);
             });
-        } catch (error) {
-            console.error(error);
 
-            medicationSelects.forEach(select => {
-                select.innerHTML =
-                    '<option value="">Ошибка загрузки препаратов</option>';
-                select.disabled = false;
-            });
+            select.disabled = false;
+        });
+
+    } catch (error) {
+        // Игнорирование отменённых и устаревших запросов
+        if (
+            error.name === "AbortError" ||
+            medicationRequests.get(group) !== controller
+        ) {
+            return;
+        }
+
+        console.error(error);
+
+        getMedicationSelects().forEach(select => {
+            select.innerHTML =
+                '<option value="">Ошибка загрузки препаратов</option>';
+            select.disabled = false;
+        });
+
+    } finally {
+        // Удаление завершённого запроса из хранилища
+        if (medicationRequests.get(group) === controller) {
+            medicationRequests.delete(group);
         }
     }
+}
 
     // Обновление названий полей
     function updateGroupNames(row, index) {

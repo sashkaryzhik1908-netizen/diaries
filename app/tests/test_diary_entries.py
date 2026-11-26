@@ -1,9 +1,16 @@
 import json
 
 from werkzeug.security import generate_password_hash
-
+from sqlalchemy import select
 from app.extensions import db
-from app.models import Category, Diary, DiaryEntry, TemplateVariable, User
+from app.models import (
+    Category,
+    Diary,
+    DiaryEntry,
+    TemplateVariable,
+    TherapySource,
+    User,
+)
 
 
 # Создание тестового пользователя
@@ -64,6 +71,28 @@ def create_diary_with_category(username):
     return diary, category
 
 
+# Создание тестового дневника с категорией назначений
+def create_diary_with_prescriptions(username):
+    user = create_user(username)
+
+    diary = Diary(
+        user_id=user.id,
+        number=1,
+    )
+
+    category = Category(
+        name="Назначения",
+        slug="prescriptions",
+        order=1,
+        template="",
+    )
+
+    db.session.add_all([diary, category])
+    db.session.commit()
+
+    return diary, category
+
+
 # Проверка открытия формы заполнения категории
 def test_fill_category_page(client, app):
     with app.app_context():
@@ -99,10 +128,12 @@ def test_save_category_entry(client, app):
     assert response.status_code == 302
 
     with app.app_context():
-        entry = DiaryEntry.query.filter_by(
-            diary_id=diary_id,
-            category_id=category_id,
-        ).first()
+        entry = db.session.scalar(
+            select(DiaryEntry).where(
+                DiaryEntry.diary_id == diary_id,
+                DiaryEntry.category_id == category_id,
+            )
+        )
 
         assert entry is not None
         assert entry.text == "Жалобы: Головная боль"
@@ -140,9 +171,11 @@ def test_update_category_entry(client, app):
     assert response.status_code == 302
 
     with app.app_context():
-        entries = DiaryEntry.query.filter_by(
-            diary_id=diary_id,
-            category_id=category_id,
+        entries = db.session.scalars(
+            select(DiaryEntry).where(
+                DiaryEntry.diary_id == diary_id,
+                DiaryEntry.category_id == category_id,
+            )
         ).all()
 
         assert len(entries) == 1
@@ -167,11 +200,12 @@ def test_save_category_form_data(client, app):
     )
 
     with app.app_context():
-        entry = DiaryEntry.query.filter_by(
-            diary_id=diary_id,
-            category_id=category_id,
-        ).first()
-
+        entry = db.session.scalar(
+            select(DiaryEntry).where(
+                DiaryEntry.diary_id == diary_id,
+                DiaryEntry.category_id == category_id,
+            )
+        )
         form_data = json.loads(entry.form_data)
 
         assert form_data == {
@@ -232,10 +266,12 @@ def test_fill_category_required_field(client, app):
     assert response.status_code == 200
 
     with app.app_context():
-        entry = DiaryEntry.query.filter_by(
-            diary_id=diary_id,
-            category_id=category_id,
-        ).first()
+        entry = db.session.scalar(
+            select(DiaryEntry).where(
+                DiaryEntry.diary_id == diary_id,
+                DiaryEntry.category_id == category_id,
+            )
+        )
 
         assert entry is None
 
@@ -342,9 +378,142 @@ def test_save_category_entry_commit_error(client, app, monkeypatch):
     assert response.status_code == 200
 
     with app.app_context():
-        entry = DiaryEntry.query.filter_by(
-            diary_id=diary_id,
-            category_id=category_id,
-        ).first()
+        entry = db.session.scalar(
+            select(DiaryEntry).where(
+                DiaryEntry.diary_id == diary_id,
+                DiaryEntry.category_id == category_id,
+            )
+        )
+
+        assert entry is None
+
+
+# Проверка открытия назначений при отсутствии справочника
+def test_fill_prescriptions_missing_source(client, app):
+    with app.app_context():
+        diary, category = create_diary_with_prescriptions("user1")
+
+        diary_id = diary.id
+        category_id = category.id
+
+        source = db.session.scalar(
+            select(TherapySource).where(TherapySource.name == "Единицы измерения")
+        )
+
+        assert source is not None
+
+        db.session.delete(source)
+        db.session.commit()
+
+    login(client, "user1")
+
+    response = client.get(f"/diaries/{diary_id}/categories/{category_id}/fill")
+
+    assert response.status_code == 302
+
+    assert response.headers["Location"].endswith(f"/diaries/{diary_id}")
+
+    with client.session_transaction() as session:
+        assert (
+            "warning",
+            "Отсутствует обязательный справочник "
+            "«Единицы измерения». Обратитесь к администратору.",
+        ) in session.get("_flashes", [])
+
+
+# Проверка открытия назначений при отсутствии нескольких справочников
+def test_fill_prescriptions_missing_multiple_sources(client, app):
+    with app.app_context():
+        diary, category = create_diary_with_prescriptions("user1")
+
+        diary_id = diary.id
+        category_id = category.id
+
+        missing_names = (
+            "Единицы измерения",
+            "Способы введения",
+            "Кратность",
+        )
+
+        sources = db.session.scalars(
+            select(TherapySource).where(TherapySource.name.in_(missing_names))
+        ).all()
+
+        assert len(sources) == 3
+
+        for source in sources:
+            db.session.delete(source)
+
+        db.session.commit()
+
+    login(client, "user1")
+
+    response = client.get(f"/diaries/{diary_id}/categories/{category_id}/fill")
+
+    assert response.status_code == 302
+
+    assert response.headers["Location"].endswith(f"/diaries/{diary_id}")
+
+    with client.session_transaction() as session:
+        messages = session.get("_flashes", [])
+
+        for name in missing_names:
+            assert (
+                "warning",
+                f"Отсутствует обязательный справочник «{name}». "
+                "Обратитесь к администратору.",
+            ) in messages
+
+
+# Проверка запрета сохранения назначений при отсутствии справочника
+def test_save_prescriptions_missing_source(client, app, monkeypatch):
+    with app.app_context():
+        diary, category = create_diary_with_prescriptions("user1")
+
+        diary_id = diary.id
+        category_id = category.id
+
+        source = db.session.scalar(
+            select(TherapySource).where(TherapySource.name == "Способы введения")
+        )
+
+        assert source is not None
+
+        db.session.delete(source)
+        db.session.commit()
+
+    login(client, "user1")
+
+    # Обработка назначений не должна запускаться
+    def fail_process_prescriptions(form):
+        raise AssertionError("Обработка назначений не должна выполняться.")
+
+    monkeypatch.setattr(
+        "app.routes.diary_entries.process_prescriptions",
+        fail_process_prescriptions,
+    )
+
+    response = client.post(
+        f"/diaries/{diary_id}/categories/{category_id}/fill",
+        data={
+            "regime": "1",
+            "diet": "15",
+            "volume": "1000",
+        },
+    )
+
+    assert response.status_code == 302
+
+    assert response.headers["Location"].endswith(
+        f"/diaries/{diary_id}"
+    )
+
+    with app.app_context():
+        entry = db.session.scalar(
+            select(DiaryEntry).where(
+                DiaryEntry.diary_id == diary_id,
+                DiaryEntry.category_id == category_id,
+            )
+        )
 
         assert entry is None

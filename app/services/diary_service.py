@@ -76,12 +76,13 @@ def get_therapy_medications():
     ).all()
 
 
-#Получение группы дополнительных параметров терапии
+# Получение группы дополнительных параметров терапии
 def get_therapy_sources():
-    return db.session.scalars(
-        select(TherapySource).order_by(TherapySource.id)
+    sources = db.session.scalars(
+        select(TherapySource)
     ).all()
 
+    return {source.name: source for source in sources}
 
 #Получение значений дополнительных параметров терапии
 def get_therapy_source_values():

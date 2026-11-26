@@ -31,3 +31,9 @@ instance/database_backup.db
 build/
 dist/
 *.spec
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml

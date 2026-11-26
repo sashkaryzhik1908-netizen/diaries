@@ -26,12 +26,16 @@
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
         <p class="text-muted mb-0">
           Статус:
-          {% if user.is_admin %}
+          {% if user.is_superuser %}
+          Суперпользователь
+          {% elif user.is_admin %}
           Администратор
           {% else %}
           Пользователь
           {% endif %}
         </p>
+
+        {% if not user.is_superuser %}
         <form method="POST"
               action="{{ url_for('auth.del_user') }}"
               onsubmit="return confirm('Удалить аккаунт и все дневники?');">
@@ -42,6 +46,7 @@
             Удалить аккаунт
           </button>
         </form>
+        {% endif %}
       </div>
     </div>
   </div>

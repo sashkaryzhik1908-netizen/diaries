@@ -49,11 +49,15 @@ def update_therapy_purpose(purpose, name, output_value):
 
 
 # Проверка использования справочника в назначениях
-def _is_prescription_item_used(field_prefix, item_id):
+def _is_prescription_item_used(field_prefixes, item_id):
     entries = db.session.scalars(
         select(DiaryEntry.form_data)
         .join(Category, DiaryEntry.category_id == Category.id)
         .where(Category.slug == "prescriptions")
+    )
+
+    prefixes = tuple(
+        f"{prefix}[" for prefix in field_prefixes
     )
 
     for raw_form_data in entries:
@@ -67,7 +71,7 @@ def _is_prescription_item_used(field_prefix, item_id):
             return True
 
         for key, values in form_data.items():
-            if key.startswith(f"{field_prefix}[") and key.endswith("]"):
+            if key.startswith(prefixes) and key.endswith("]"):
                 if not isinstance(values, list):
                     return True
 
@@ -79,7 +83,10 @@ def _is_prescription_item_used(field_prefix, item_id):
 
 # Проверка использования цели терапии
 def is_purpose_used(purpose_id):
-    return _is_prescription_item_used("purpose_id", purpose_id)
+    return _is_prescription_item_used(
+        ("purpose_id",),
+        purpose_id,
+    )
 
 
 # Удаление цели терапии
@@ -175,7 +182,10 @@ def update_therapy_medication(medication, name, purpose_ids):
 
 # Проверка использования препарата
 def is_medication_used(medication_id):
-    return _is_prescription_item_used("medication_id", medication_id)
+    return _is_prescription_item_used(
+        ("medication_id", "additional_medication_id"),
+        medication_id,
+    )
 
 
 # Удаление препарата

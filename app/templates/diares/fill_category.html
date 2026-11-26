@@ -146,7 +146,17 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        <!-- Совместные препараты антибактериальной терапии -->
+                        <div class="col-12 additional-medications-container d-none">
 
+                            <div class="additional-medications-list"></div>
+
+                            <button type="button"
+                                    class="btn btn-outline-primary btn-sm add-additional-medication">
+                                Добавить совместный препарат
+                            </button>
+
+                        </div>
                         <div class="col-md-10 antibacterial-fields d-none">
                             <div class="row g-2">
                                 <div class="col-md-4">
@@ -365,7 +375,61 @@
             Сохранить
         </button>
     </form>
+    {% if category.slug == "prescriptions" %}
 
+        <!-- Шаблон совместного препарата -->
+        <template id="additional-medication-template">
+
+            <div class="additional-medication-row row g-2 mb-2">
+
+                <!-- Препарат -->
+                <div class="col-md-4">
+                    <select class="form-select"
+                            name="additional_medication_id[0][0][]"
+                            required>
+                        <option value="">Выберите препарат</option>
+                    </select>
+                </div>
+
+                <!-- Дозировка -->
+                <div class="col-md-3">
+                    <input type="text"
+                           name="additional_dose[0][0][]"
+                           class="form-control"
+                           placeholder="доза"
+                           required>
+                </div>
+
+                <!-- Единица измерения -->
+                <div class="col-md-3">
+                    <select name="additional_unit[0][0][]"
+                            class="form-select"
+                            required>
+
+                        <option value="">Выберите единицу измерения</option>
+
+                        {% for value in sources["Единицы измерения"].values %}
+                        <option value="{{ value.name }}">
+                            {{ value.name }}
+                        </option>
+                        {% endfor %}
+
+                    </select>
+                </div>
+
+                <!-- Удаление совместного препарата -->
+                <div class="col-md-2">
+                    <button type="button"
+                            class="btn btn-outline-danger remove-additional-medication w-100">
+                        Удалить
+                    </button>
+                </div>
+
+            </div>
+
+        </template>
+
+        {% endif %}
     {% if generated_text %}
     <div class="card mt-4">
         <div class="card-body">

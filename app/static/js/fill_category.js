@@ -154,6 +154,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const medicationsUrl = container.dataset.medicationsUrl;
 
+    // Шаблон совместного препарата
+    const additionalMedicationTemplate = document.getElementById(
+        "additional-medication-template"
+    );
     // Хранилище активных запросов препаратов по группам
     const medicationRequests = new WeakMap();
 
@@ -181,19 +185,28 @@ document.addEventListener("DOMContentLoaded", function () {
         const isAnalgesic = selectedPurpose.includes("анальгетическ");
 
         // Изменение названия кнопки добавления препарата
-            const addMedicationButton = group.querySelector(".add-medication");
+        const addMedicationButton = group.querySelector(".add-medication");
 
-            if (addMedicationButton) {
-                addMedicationButton.textContent = isAntibacterial
-                    ? "Добавить антибактериальный препарат"
-                    : "Добавить препарат для совместного назначения";
-            }
+        if (addMedicationButton) {
+            addMedicationButton.textContent = isAntibacterial
+                ? "Добавить антибактериальный препарат"
+                : "Добавить препарат для совместного назначения";
+        }
 
         // Индивидуальные поля антибактериальной терапии
         group.querySelectorAll(".antibacterial-fields").forEach(fields => {
             fields.classList.toggle("d-none", !isAntibacterial);
 
             fields.querySelectorAll("select, input").forEach(field => {
+                field.disabled = !isAntibacterial;
+            });
+        });
+
+        // Совместные препараты антибактериальной терапии
+        group.querySelectorAll(".additional-medications-container").forEach(fields => {
+            fields.classList.toggle("d-none", !isAntibacterial);
+
+            fields.querySelectorAll("select, input, button").forEach(field => {
                 field.disabled = !isAntibacterial;
             });
         });
@@ -225,94 +238,127 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-   // Получение препаратов по цели терапии
-async function updateMedicationOptions(group, purposeId) {
-    // Отмена предыдущего запроса для этой группы
-    const previousController = medicationRequests.get(group);
+    // Получение препаратов по цели терапии
+    async function updateMedicationOptions(group, purposeId) {
+        // Отмена предыдущего запроса для этой группы
+        const previousController = medicationRequests.get(group);
 
-    if (previousController) {
-        previousController.abort();
-    }
-
-    const controller = new AbortController();
-    medicationRequests.set(group, controller);
-
-    // Получение актуальных полей выбора препаратов
-    const getMedicationSelects = () => group.querySelectorAll(
-        '.medication-row select[name^="medication_id"]'
-    );
-
-    getMedicationSelects().forEach(select => {
-        select.innerHTML = '<option value="">Загрузка препаратов...</option>';
-        select.disabled = true;
-    });
-
-    if (!purposeId) {
-        getMedicationSelects().forEach(select => {
-            select.innerHTML =
-                '<option value="">Сначала выберите цель терапии</option>';
-            select.disabled = false;
-        });
-
-        medicationRequests.delete(group);
-        return;
-    }
-
-    try {
-        const url = medicationsUrl.replace(/0$/, purposeId);
-
-        const response = await fetch(url, {
-            signal: controller.signal
-        });
-
-        if (!response.ok) {
-            throw new Error("Ошибка получения препаратов");
+        if (previousController) {
+            previousController.abort();
         }
 
-        const medications = await response.json();
+        const controller = new AbortController();
+        medicationRequests.set(group, controller);
 
-        // Игнорирование устаревшего ответа
-        if (medicationRequests.get(group) !== controller) {
-            return;
-        }
+        // Получение актуальных полей выбора препаратов
+        const getMedicationSelects = () => group.querySelectorAll(
+            '.medication-row select[name^="medication_id"]'
+        );
 
         getMedicationSelects().forEach(select => {
-            select.innerHTML = '<option value="">Выберите препарат</option>';
+            select.innerHTML = '<option value="">Загрузка препаратов...</option>';
+            select.disabled = true;
+        });
 
-            medications.forEach(medication => {
-                const option = document.createElement("option");
-                option.value = medication.id;
-                option.textContent = medication.name;
-                select.appendChild(option);
+        if (!purposeId) {
+            getMedicationSelects().forEach(select => {
+                select.innerHTML =
+                    '<option value="">Сначала выберите цель терапии</option>';
+                select.disabled = false;
             });
 
-            select.disabled = false;
-        });
-
-    } catch (error) {
-        // Игнорирование отменённых и устаревших запросов
-        if (
-            error.name === "AbortError" ||
-            medicationRequests.get(group) !== controller
-        ) {
+            medicationRequests.delete(group);
             return;
         }
 
-        console.error(error);
+        try {
+            const url = medicationsUrl.replace(/0$/, purposeId);
 
-        getMedicationSelects().forEach(select => {
-            select.innerHTML =
-                '<option value="">Ошибка загрузки препаратов</option>';
-            select.disabled = false;
-        });
+            const response = await fetch(url, {
+                signal: controller.signal
+            });
 
-    } finally {
-        // Удаление завершённого запроса из хранилища
-        if (medicationRequests.get(group) === controller) {
-            medicationRequests.delete(group);
+            if (!response.ok) {
+                throw new Error("Ошибка получения препаратов");
+            }
+
+            const medications = await response.json();
+
+            // Игнорирование устаревшего ответа
+            if (medicationRequests.get(group) !== controller) {
+                return;
+            }
+
+            getMedicationSelects().forEach(select => {
+                select.innerHTML = '<option value="">Выберите препарат</option>';
+
+                medications.forEach(medication => {
+                    const option = document.createElement("option");
+                    option.value = medication.id;
+                    option.textContent = medication.name;
+                    select.appendChild(option);
+                });
+
+                select.disabled = false;
+            });
+
+        } catch (error) {
+            // Игнорирование отменённых и устаревших запросов
+            if (
+                error.name === "AbortError" ||
+                medicationRequests.get(group) !== controller
+            ) {
+                return;
+            }
+
+            console.error(error);
+
+            getMedicationSelects().forEach(select => {
+                select.innerHTML =
+                    '<option value="">Ошибка загрузки препаратов</option>';
+                select.disabled = false;
+            });
+
+        } finally {
+            // Удаление завершённого запроса из хранилища
+            if (medicationRequests.get(group) === controller) {
+                medicationRequests.delete(group);
+            }
         }
     }
-}
+
+    // Добавление совместного препарата
+    function addAdditionalMedication(medicationRow) {
+        const list = medicationRow.querySelector(
+            ".additional-medications-list"
+        );
+
+        const mainMedicationSelect = medicationRow.querySelector(
+            'select[name^="medication_id"]'
+        );
+
+        if (!list || !mainMedicationSelect || !additionalMedicationTemplate) {
+            return;
+        }
+
+        if (mainMedicationSelect.disabled) return;
+
+        const newMedication = additionalMedicationTemplate
+            .content
+            .firstElementChild
+            .cloneNode(true);
+
+        const medicationSelect = newMedication.querySelector(
+            'select[name^="additional_medication_id"]'
+        );
+
+        // Копирование препаратов из общего справочника цели терапии
+        medicationSelect.innerHTML = mainMedicationSelect.innerHTML;
+        medicationSelect.selectedIndex = 0;
+
+        list.appendChild(newMedication);
+        return newMedication;
+    }
 
     // Обновление названий полей
     function updateGroupNames(row, index) {
@@ -330,7 +376,7 @@ async function updateMedicationOptions(group, purposeId) {
         row.querySelector('[name^="start_date"]').name =
             `start_date[${index}]`;
 
-        row.querySelectorAll(".medication-row").forEach(medicationRow => {
+        row.querySelectorAll(".medication-row").forEach((medicationRow, medicationIndex) => {
             medicationRow.querySelector(
                 'select[name^="medication_id"]'
             ).name = `medication_id[${index}][]`;
@@ -354,6 +400,20 @@ async function updateMedicationOptions(group, purposeId) {
             medicationRow.querySelector(
                 'input[name^="medication_start_date"]'
             ).name = `medication_start_date[${index}][]`;
+            // Перенумерация совместных препаратов
+            medicationRow.querySelectorAll(".additional-medication-row").forEach(additionalRow => {
+                additionalRow.querySelector(
+                    'select[name^="additional_medication_id"]'
+                ).name = `additional_medication_id[${index}][${medicationIndex}][]`;
+
+                additionalRow.querySelector(
+                    'input[name^="additional_dose"]'
+                ).name = `additional_dose[${index}][${medicationIndex}][]`;
+
+                additionalRow.querySelector(
+                    'select[name^="additional_unit"]'
+                ).name = `additional_unit[${index}][${medicationIndex}][]`;
+            });
         });
     }
 
@@ -484,7 +544,36 @@ async function updateMedicationOptions(group, purposeId) {
                     startDateInput.value =
                         medicationStartDates[medicationIndex] || "";
                 }
+                    // Восстановление совместных препаратов
+                    const additionalMedicationIds = getSavedList(
+                        `additional_medication_id[${oldIndex}][${medicationIndex}][]`
+                    );
 
+                    const additionalDoses = getSavedList(
+                        `additional_dose[${oldIndex}][${medicationIndex}][]`
+                    );
+
+                    const additionalUnits = getSavedList(
+                        `additional_unit[${oldIndex}][${medicationIndex}][]`
+                    );
+
+                    additionalMedicationIds.forEach((additionalId, additionalIndex) => {
+                        const additionalRow = addAdditionalMedication(medicationRow);
+
+                        if (!additionalRow) return;
+
+                        additionalRow.querySelector(
+                            'select[name^="additional_medication_id"]'
+                        ).value = additionalId;
+
+                        additionalRow.querySelector(
+                            'input[name^="additional_dose"]'
+                        ).value = additionalDoses[additionalIndex] || "";
+
+                        additionalRow.querySelector(
+                            'select[name^="additional_unit"]'
+                        ).value = additionalUnits[additionalIndex] || "";
+                    });
                 medicationsContainer.appendChild(medicationRow);
             });
 
@@ -501,20 +590,78 @@ async function updateMedicationOptions(group, purposeId) {
         }
     }
 
-    // Изменение цели терапии
-    container.addEventListener("change", function (event) {
-        if (!event.target.matches(".purpose-select")) return;
+// Изменение цели терапии
+container.addEventListener("change", function (event) {
+    if (!event.target.matches(".purpose-select")) return;
 
-        const group = event.target.closest(".prescription-row");
-        const purposeId = event.target.value;
+    const group = event.target.closest(".prescription-row");
+    const purposeId = event.target.value;
 
-        toggleAntibacterialFields(group);
-        updateMedicationOptions(group, purposeId);
+    // Удаление совместных препаратов
+    group.querySelectorAll(".additional-medication-row").forEach(row => {
+        row.remove();
     });
+
+    // Удаление всех основных строк, кроме первой
+    group.querySelectorAll(".medication-row").forEach((row, index) => {
+        if (index > 0) {
+            row.remove();
+        }
+    });
+
+    // Очистка ранее введённых значений
+    group.querySelectorAll("input").forEach(input => {
+        input.value = "";
+    });
+
+    group.querySelectorAll("select").forEach(select => {
+        if (!select.matches(".purpose-select")) {
+            select.selectedIndex = 0;
+        }
+    });
+
+    toggleAntibacterialFields(group);
+    updateMedicationOptions(group, purposeId);
+
+    reindexGroups();
+});
 
     container.addEventListener("click", function (event) {
         const target = event.target;
 
+        // Добавление совместного препарата к антибиотику
+        const addAdditionalButton = target.closest(
+            ".add-additional-medication"
+        );
+
+        if (addAdditionalButton) {
+            const medicationRow = addAdditionalButton.closest(
+                ".medication-row"
+            );
+
+            addAdditionalMedication(medicationRow);
+
+            reindexGroups();
+
+            return;
+        }
+
+// Удаление совместного препарата
+        const removeAdditionalButton = target.closest(
+            ".remove-additional-medication"
+        );
+
+        if (removeAdditionalButton) {
+            const additionalRow = removeAdditionalButton.closest(
+                ".additional-medication-row"
+            );
+
+            additionalRow.remove();
+
+            reindexGroups();
+
+            return;
+        }
         // Добавление совместного препарата
         const addMedicationButton = target.closest(".add-medication");
 
@@ -532,6 +679,11 @@ async function updateMedicationOptions(group, purposeId) {
             if (!firstMedication) return;
 
             const newMedication = firstMedication.cloneNode(true);
+
+            // Очистка совместных препаратов в новой строке
+            newMedication.querySelectorAll(".additional-medication-row").forEach(row => {
+                row.remove();
+            });
 
             newMedication.querySelectorAll("select").forEach(select => {
                 select.selectedIndex = 0;
@@ -584,6 +736,11 @@ async function updateMedicationOptions(group, purposeId) {
         if (!firstRow) return;
 
         const newRow = firstRow.cloneNode(true);
+
+        // Очистка совместных препаратов в новой группе
+        newRow.querySelectorAll(".additional-medication-row").forEach(row => {
+            row.remove();
+        });
 
         newRow.querySelectorAll(".medication-row").forEach((row, index) => {
             if (index > 0) row.remove();

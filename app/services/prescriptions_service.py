@@ -1,3 +1,6 @@
+import re
+from datetime import datetime
+
 from datetime import datetime
 
 from sqlalchemy import select
@@ -5,6 +8,7 @@ from sqlalchemy import select
 from app.extensions import db
 from app.models import TherapyMedication, TherapyPurpose, TherapySource
 from app.services.validators import is_valid_dose
+
 
 # Проверка анальгетической терапии
 def is_analgesic_therapy(purpose):
@@ -14,6 +18,117 @@ def is_analgesic_therapy(purpose):
 # Проверка антибактериальной терапии
 def is_antibacterial_therapy(purpose):
     return purpose.name.lower() == "антибактериальная"
+
+
+# Проверка индексов совместных препаратов
+def validate_additional_medication_fields(form, group_indexes):
+    errors = []
+
+    pattern = re.compile(
+        r"additional_(?:medication_id|dose|unit)"
+        r"\[(\d+)\]\[(\d+)\]\[\]"
+    )
+
+    for key in form:
+        if not key.startswith(
+            ("additional_medication_id", "additional_dose", "additional_unit")
+        ):
+            continue
+
+        match = pattern.fullmatch(key)
+
+        # Проверка формата поля
+        if not match:
+            errors.append("Некорректный формат поля совместного препарата.")
+            continue
+
+        group_index, medication_index = match.groups()
+
+        # Проверка существования группы назначений
+        if group_index not in group_indexes:
+            errors.append("Совместный препарат относится к несуществующей группе.")
+            continue
+
+        medication_ids = form.getlist(f"medication_id[{group_index}][]")
+
+        # Проверка существования основного препарата
+        if int(medication_index) >= len(medication_ids) or medication_index != str(
+            int(medication_index)
+        ):
+            errors.append("Совместный препарат не связан с основным препаратом.")
+
+    return errors
+
+
+# Обработка совместных препаратов
+def process_additional_medications(
+    form,
+    group_index,
+    medication_index,
+    medications_dict,
+    allowed_medication_ids,
+    allowed_units,
+):
+    errors = []
+    medication_parts = []
+
+    # Получение совместных препаратов
+    medication_ids = form.getlist(
+        f"additional_medication_id[{group_index}][{medication_index}][]"
+    )
+
+    doses = form.getlist(f"additional_dose[{group_index}][{medication_index}][]")
+
+    units = form.getlist(f"additional_unit[{group_index}][{medication_index}][]")
+
+    # Проверка количества параметров
+    if not len(medication_ids) == len(doses) == len(units):
+        errors.append("Количество совместных препаратов и их параметров не совпадает.")
+        return [], errors
+
+    # Проверка каждого совместного препарата
+    for medication_id, dose, unit in zip(
+        medication_ids,
+        doses,
+        units,
+    ):
+        dose = dose.strip()
+
+        # Проверка существования препарата
+        if not medication_id.isdigit() or int(medication_id) not in medications_dict:
+            errors.append("Выберите корректный совместный препарат.")
+            continue
+
+        # Проверка принадлежности цели терапии
+        if int(medication_id) not in allowed_medication_ids:
+            errors.append("Совместный препарат не соответствует цели терапии.")
+            continue
+
+        # Проверка наличия дозировки
+        if not dose:
+            errors.append("Укажите дозу совместного препарата.")
+            continue
+
+        # Проверка корректности дозировки
+        if not is_valid_dose(dose):
+            errors.append(
+                "Дозировка совместного препарата должна быть положительным числом."
+            )
+            continue
+
+        # Проверка единицы измерения
+        if unit not in allowed_units:
+            errors.append(
+                "Выберите корректную единицу измерения совместного препарата."
+            )
+            continue
+
+        medication = medications_dict[int(medication_id)]
+
+        # Формирование текста совместного препарата
+        medication_parts.append(f"{medication.name} {dose} {unit}")
+
+    return medication_parts, errors
 
 
 # Обработка назначений
@@ -66,6 +181,12 @@ def process_prescriptions(form):
     if not group_indexes:
         errors.append("Добавьте хотя бы одно назначение.")
 
+    # Проверка индексов совместных препаратов
+    errors.extend(validate_additional_medication_fields(form, group_indexes))
+
+    if errors:
+        return None, errors
+
     # Получение ID целей терапии
     purpose_ids_int = [
         int(form.get(f"purpose_id[{index}]"))
@@ -82,6 +203,16 @@ def process_prescriptions(form):
         medication_ids_int.extend(
             int(value) for value in medication_ids if value.isdigit()
         )
+
+        # Получение ID совместных препаратов
+        for medication_index in range(len(medication_ids)):
+            additional_medication_ids = form.getlist(
+                f"additional_medication_id[{index}][{medication_index}][]"
+            )
+
+            medication_ids_int.extend(
+                int(value) for value in additional_medication_ids if value.isdigit()
+            )
 
     # Получение целей терапии из базы данных
     purposes_dict = {
@@ -114,6 +245,24 @@ def process_prescriptions(form):
 
         purpose = purposes_dict[int(purpose_id)]
 
+        # Проверка допустимости совместных препаратов
+        if not is_antibacterial_therapy(purpose):
+            if any(
+                key.startswith(
+                    (
+                        f"additional_medication_id[{index}]",
+                        f"additional_dose[{index}]",
+                        f"additional_unit[{index}]",
+                    )
+                )
+                for key in form
+            ):
+                errors.append(
+                    "Совместные препараты доступны только "
+                    "для антибактериальной терапии."
+                )
+                continue
+
         # Получение препаратов, дозировок и единиц измерения
         medication_ids = form.getlist(f"medication_id[{index}][]")
         doses = form.getlist(f"dose[{index}][]")
@@ -125,17 +274,14 @@ def process_prescriptions(form):
 
         # Проверка существования препаратов
         if any(
-            not medication_id.isdigit()
-            or int(medication_id) not in medications_dict
+            not medication_id.isdigit() or int(medication_id) not in medications_dict
             for medication_id in medication_ids
         ):
             errors.append("Выберите корректный препарат.")
             continue
 
         # Проверка принадлежности препаратов цели терапии
-        allowed_medication_ids = {
-            medication.id for medication in purpose.medications
-        }
+        allowed_medication_ids = {medication.id for medication in purpose.medications}
 
         if any(
             int(medication_id) not in allowed_medication_ids
@@ -200,20 +346,23 @@ def process_prescriptions(form):
             group_valid = True
 
             # Проверка каждого препарата антибактериальной терапии
-            for (
+            # Проверка каждого препарата антибактериальной терапии
+            for medication_index, (
                 medication_id,
                 dose,
                 unit,
                 method,
                 frequency,
                 start_date,
-            ) in zip(
-                medication_ids,
-                doses,
-                units,
-                methods,
-                frequencies,
-                start_dates,
+            ) in enumerate(
+                zip(
+                    medication_ids,
+                    doses,
+                    units,
+                    methods,
+                    frequencies,
+                    start_dates,
+                )
             ):
                 dose = dose.strip()
                 frequency = frequency.strip()
@@ -272,8 +421,33 @@ def process_prescriptions(form):
 
                 medication = medications_dict[int(medication_id)]
 
-                # Формирование текста отдельного препарата
-                medication_text = f"{medication.name} {dose} {unit} {method}"
+                # Обработка совместных препаратов
+                additional_parts, additional_errors = process_additional_medications(
+                    form,
+                    index,
+                    medication_index,
+                    medications_dict,
+                    allowed_medication_ids,
+                    allowed_units,
+                )
+
+                # Проверка ошибок совместных препаратов
+                if additional_errors:
+                    errors.extend(additional_errors)
+                    group_valid = False
+                    continue
+
+                # Формирование текста основного препарата
+                combined_parts = [f"{medication.name} {dose} {unit}"]
+
+                # Добавление совместных препаратов
+                combined_parts.extend(additional_parts)
+
+                # Объединение основного и совместных препаратов
+                medication_text = " + ".join(combined_parts)
+
+                # Добавление общего способа введения
+                medication_text += f" {method}"
 
                 if frequency:
                     medication_text += f" {frequency}"

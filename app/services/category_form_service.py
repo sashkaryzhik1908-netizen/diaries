@@ -74,9 +74,7 @@ def process_category_form(form, variables, category):
                     ).strip()
 
                     if not dose:
-                        errors.append(
-                            f"Укажите дозировку препарата «{option.value}»."
-                        )
+                        errors.append(f"Укажите дозировку препарата «{option.value}».")
                         continue
 
                     # Проверка корректности дозировки
@@ -86,12 +84,9 @@ def process_category_form(form, variables, category):
                         )
                         continue
 
-                    drug_parts.append(
-                        f"{option.output_value} в дозе {dose} мкг/кг/мин"
-                    )
+                    drug_parts.append(f"{option.output_value} в дозе {dose} мкг/кг/мин")
 
                 values[variable.name] = ", ".join(drug_parts)
-
 
             # Формирование значений остальных multiselect-полей
             else:

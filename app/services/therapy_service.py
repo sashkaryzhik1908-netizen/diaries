@@ -56,9 +56,7 @@ def _is_prescription_item_used(field_prefixes, item_id):
         .where(Category.slug == "prescriptions")
     )
 
-    prefixes = tuple(
-        f"{prefix}[" for prefix in field_prefixes
-    )
+    prefixes = tuple(f"{prefix}[" for prefix in field_prefixes)
 
     for raw_form_data in entries:
         try:
@@ -124,6 +122,7 @@ def get_existing_medication(name, exclude_id=None):
 
     return db.session.scalar(query)
 
+
 # Проверка идентификаторов целей терапии
 def validate_purpose_ids(raw_purpose_ids):
     try:
@@ -140,9 +139,7 @@ def validate_purpose_ids(raw_purpose_ids):
 
     existing_ids = set(
         db.session.scalars(
-            select(TherapyPurpose.id).where(
-                TherapyPurpose.id.in_(purpose_ids)
-            )
+            select(TherapyPurpose.id).where(TherapyPurpose.id.in_(purpose_ids))
         ).all()
     )
 

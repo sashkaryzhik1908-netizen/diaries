@@ -1,8 +1,6 @@
 import re
 from datetime import datetime
 
-from datetime import datetime
-
 from sqlalchemy import select
 
 from app.extensions import db
@@ -594,10 +592,7 @@ def process_prescriptions(form):
 
         # Добавление групп назначений в итоговый текст
         for number, group in enumerate(groups, start=3):
-            if "тромботических" in group["name"]:
-                lines.append(f"{number}. {group['name']} {group['text']};")
-
-            elif group["type"] == "analgesic":
+            if "тромботических" in group["name"] or group["type"] == "analgesic":
                 lines.append(f"{number}. {group['name']} {group['text']};")
 
             else:

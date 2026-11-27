@@ -1,8 +1,8 @@
 import json
 
 import pytest
-from werkzeug.security import generate_password_hash
 from sqlalchemy import func, select
+from werkzeug.security import generate_password_hash
 
 from app.extensions import db
 from app.models import (
@@ -693,10 +693,12 @@ def test_delete_used_therapy_medication(client, app):
 
         create_prescription_entry(
             user,
-            json.dumps({
-                "purpose_id[0]": [str(purpose.id)],
-                "medication_id[0][]": [str(medication.id)],
-            }),
+            json.dumps(
+                {
+                    "purpose_id[0]": [str(purpose.id)],
+                    "medication_id[0][]": [str(medication.id)],
+                }
+            ),
         )
 
         medication_id = medication.id
@@ -715,9 +717,7 @@ def test_delete_used_therapy_medication(client, app):
     )
 
     with app.app_context():
-        assert db.session.get(
-            TherapyMedication, medication_id
-        ) is not None
+        assert db.session.get(TherapyMedication, medication_id) is not None
 
 
 # Несуществующий препарат
@@ -897,9 +897,11 @@ def test_is_medication_used_matching_purpose_id(app):
 
         create_prescription_entry(
             user,
-            json.dumps({
-                "purpose_id[0]": [str(purpose.id)],
-            }),
+            json.dumps(
+                {
+                    "purpose_id[0]": [str(purpose.id)],
+                }
+            ),
         )
 
         assert purpose.id == medication.id

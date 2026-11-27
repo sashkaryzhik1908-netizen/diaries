@@ -120,7 +120,12 @@ def parse_indicator(raw_text, indicators, datetime):
     if " - " not in raw_text:
         return None
 
-    raw_name, raw_value = raw_text.rsplit(" - ", 1)
+    # Для бактериологических исследований сохраняем
+    # микроорганизм вместе с антибиотикограммой.
+    if "вид микроорганизма" in normalize_text(raw_text):
+        raw_name, raw_value = raw_text.split(" - ", 1)
+    else:
+        raw_name, raw_value = raw_text.rsplit(" - ", 1)
 
     raw_name = raw_name.strip()
     raw_value = raw_value.strip()

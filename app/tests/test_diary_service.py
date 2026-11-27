@@ -862,10 +862,7 @@ def test_process_prescriptions_foreign_medication(app):
         generated_text, errors = process_prescriptions(form)
 
         assert generated_text is None
-        assert (
-            "Выберите препараты, соответствующие цели терапии «Терапия»."
-            in errors
-        )
+        assert "Выберите препараты, соответствующие цели терапии «Терапия»." in errors
 
 
 # Проверка некорректной дозировки препарата

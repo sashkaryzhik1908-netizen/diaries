@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, redirect, request, render_template, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from flask_wtf import FlaskForm
 from wtforms.fields.choices import SelectChoice

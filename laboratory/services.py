@@ -51,6 +51,54 @@ def format_indicator_value(value, precision):
     return match.group("prefix") + formatted + match.group("suffix")
 
 
+def format_bacteriology_value(value):
+    """Формирует результат бактериологического исследования."""
+
+    match = re.fullmatch(
+        r"\s*(?P<organism>.+?)\s*-\s*\((?P<antibiotics>.*)\)\s*",
+        value,
+        re.DOTALL,
+    )
+
+    if not match:
+        return value
+
+    organism = match.group("organism").strip()
+
+    antibiotics = re.findall(
+        r"([^,]+?)\s*/\s*([SIR])\s*/",
+        match.group("antibiotics"),
+        re.IGNORECASE,
+    )
+
+    # Чувствительные антибиотики.
+    sensitive = [
+        name.strip() for name, sensitivity in antibiotics if sensitivity.upper() == "S"
+    ]
+
+    # Антибиотики с умеренной чувствительностью.
+    intermediate = [
+        name.strip() for name, sensitivity in antibiotics if sensitivity.upper() == "I"
+    ]
+
+    # Удаляем повторения с сохранением порядка.
+    sensitive = list(dict.fromkeys(sensitive))
+    intermediate = list(dict.fromkeys(intermediate))
+
+    parts = [organism]
+
+    if sensitive:
+        parts.append(f"чувствительность к - ({', '.join(sensitive)})")
+
+    if intermediate:
+        parts.append(f"умеренная чувствительность к - ({', '.join(intermediate)})")
+
+    if not sensitive and not intermediate:
+        parts.append("резистентность ко всем антибактериальным препаратам")
+
+    return ", ".join(parts)
+
+
 def format_laboratory_results(results):
     """Формирует текст лабораторных исследований в динамике."""
 
@@ -121,10 +169,16 @@ def format_laboratory_results(results):
     )
 
     grouped_results = defaultdict(dict)
+    bacteriology_results = []
 
     for result in sorted_results:
         category = result["category"]
         code = result["code"]
+
+        # Бактериологические исследования выводим отдельно.
+        if category == "bacteriology":
+            bacteriology_results.append(result)
+            continue
 
         # Ручную лейкоформулу выделяем отдельно.
         if category == "cbc" and code in indicator_order["manual_diff"]:
@@ -166,6 +220,27 @@ def format_laboratory_results(results):
     lines = []
 
     for section, section_name in section_order:
+        # Отдельное форматирование бактериологических исследований.
+        if section == "bacteriology":
+            if not bacteriology_results:
+                continue
+
+            lines.append(f"{section_name}:")
+
+            for result in bacteriology_results:
+                date = datetime.strptime(
+                    result["datetime"],
+                    "%d.%m.%Y %H:%M",
+                ).strftime("%d.%m.%Y")
+
+                name = result["indicator"]
+                value = format_bacteriology_value(result["value"])
+
+                lines.append(f"{name} от {date} — {value};")
+
+            lines.append("")
+            continue
+
         indicators = grouped_results.get(section)
 
         if not indicators:

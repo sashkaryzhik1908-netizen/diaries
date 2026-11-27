@@ -2,8 +2,8 @@ import json
 from datetime import UTC
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, select
 from flask import current_app
+from sqlalchemy import func, select
 
 from app.extensions import db
 from app.models import (
@@ -16,7 +16,6 @@ from app.models import (
     TherapySource,
     TherapySourceValue,
 )
-
 
 LOCAL_TIMEZONE = ZoneInfo("Asia/Almaty")
 
@@ -78,13 +77,12 @@ def get_therapy_medications():
 
 # Получение группы дополнительных параметров терапии
 def get_therapy_sources():
-    sources = db.session.scalars(
-        select(TherapySource)
-    ).all()
+    sources = db.session.scalars(select(TherapySource)).all()
 
     return {source.name: source for source in sources}
 
-#Получение значений дополнительных параметров терапии
+
+# Получение значений дополнительных параметров терапии
 def get_therapy_source_values():
     return db.session.scalars(
         select(TherapySourceValue).order_by(TherapySourceValue.id)

@@ -1,5 +1,5 @@
-from werkzeug.security import generate_password_hash
 from sqlalchemy import func, select
+from werkzeug.security import generate_password_hash
 
 from app.extensions import db
 from app.models import (
@@ -155,7 +155,7 @@ def test_add_category(client, app):
     with app.app_context():
         admin = User(
             username="admin",
-            name = "Василий Пуповицкий",
+            name="Василий Пуповицкий",
             password=generate_password_hash("123456"),
             is_admin=True,
         )
@@ -250,9 +250,7 @@ def test_user_cannot_add_category(client, app):
     assert response.status_code == 403
 
     with app.app_context():
-        assert db.session.scalar(
-            select(func.count()).select_from(Category)
-        ) == 0
+        assert db.session.scalar(select(func.count()).select_from(Category)) == 0
 
 
 # Удаление категории
@@ -341,11 +339,12 @@ def test_cannot_delete_category_with_entries(client, app):
 
     with app.app_context():
         assert db.session.get(Category, category_id) is not None
-        assert db.session.scalar(
-            select(DiaryEntry)
-            .where(DiaryEntry.category_id == category_id)
-            .limit(1)
-        ) is not None
+        assert (
+            db.session.scalar(
+                select(DiaryEntry).where(DiaryEntry.category_id == category_id).limit(1)
+            )
+            is not None
+        )
 
 
 # Добавление переменной
@@ -388,7 +387,7 @@ def test_add_variable(client, app):
             select(TemplateVariable).where(
                 TemplateVariable.category_id == category_id,
                 TemplateVariable.name == "complaints",
-                )
+            )
         )
         assert variable is not None
         assert variable.label == "Жалобы пациента"
@@ -612,7 +611,7 @@ def test_add_option(client, app):
             .where(
                 VariableOption.variable_id == variable_id,
                 VariableOption.value == "Тяжёлое",
-                )
+            )
             .limit(1)
         )
         assert option is not None

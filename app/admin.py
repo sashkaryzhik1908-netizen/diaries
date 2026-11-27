@@ -4,12 +4,11 @@ from flask_admin.contrib.sqla import ModelView
 from flask_login import current_user
 from sqlalchemy import func, select
 
+from app.extensions import db
 from app.services.therapy_service import (
     is_medication_used,
     is_purpose_used,
 )
-
-from app.extensions import db
 
 from .models import (
     Category,
@@ -17,10 +16,10 @@ from .models import (
     TemplateVariable,
     TherapyMedication,
     TherapyPurpose,
-    User,
-    VariableOption,
     TherapySource,
     TherapySourceValue,
+    User,
+    VariableOption,
 )
 
 
@@ -216,6 +215,7 @@ class TherapyPurposeAdmin(SuperuserModelView):
 
         return super().delete_model(model)
 
+
 class TherapyMedicationAdmin(SuperuserModelView):
     column_labels = {
         "id": "ID",
@@ -243,6 +243,7 @@ class TherapyMedicationAdmin(SuperuserModelView):
             return False
 
         return super().delete_model(model)
+
 
 class TherapySourceAdmin(SuperuserModelView):
     column_labels = {

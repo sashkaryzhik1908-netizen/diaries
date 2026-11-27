@@ -1,17 +1,15 @@
 from flask_wtf import FlaskForm
-
 from wtforms import (
     BooleanField,
     IntegerField,
-    SelectMultipleField,
     PasswordField,
     SelectField,
+    SelectMultipleField,
     StringField,
     SubmitField,
     TextAreaField,
 )
 from wtforms.fields.choices import SelectChoice
-
 from wtforms.validators import (
     DataRequired,
     EqualTo,
@@ -212,6 +210,7 @@ class TherapyMedicationForm(FlaskForm):
     )
     submit = SubmitField("Сохранить")
 
+
 class TherapySourceForm(FlaskForm):
     name = StringField(
         "Название группы дополнительных параметров терапии",
@@ -221,6 +220,7 @@ class TherapySourceForm(FlaskForm):
         ],
     )
     submit = SubmitField("Сохранить")
+
 
 class TherapySourceValueForm(FlaskForm):
     name = StringField(

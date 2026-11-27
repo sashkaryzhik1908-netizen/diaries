@@ -1,7 +1,7 @@
 import pytest
-from werkzeug.security import generate_password_hash
 from flask import url_for
 from sqlalchemy import select
+from werkzeug.security import generate_password_hash
 
 from app.extensions import db
 from app.models import User
@@ -224,15 +224,10 @@ def test_superuser_cannot_delete_account(client, app):
     )
 
     assert response.status_code == 200
-    assert (
-        "Нельзя удалить учётную запись суперпользователя.".encode()
-        in response.data
-    )
+    assert "Нельзя удалить учётную запись суперпользователя.".encode() in response.data
 
     with app.app_context():
-        user = db.session.scalar(
-            select(User).where(User.username == "superuser")
-        )
+        user = db.session.scalar(select(User).where(User.username == "superuser"))
 
         assert user is not None
         assert user.is_superuser is True
@@ -280,9 +275,7 @@ def test_user_can_delete_account(client, app, is_admin):
     assert "Профиль удалён".encode() in response.data
 
     with app.app_context():
-        user = db.session.scalar(
-            select(User).where(User.username == "delete_user")
-        )
+        user = db.session.scalar(select(User).where(User.username == "delete_user"))
 
         assert user is None
 

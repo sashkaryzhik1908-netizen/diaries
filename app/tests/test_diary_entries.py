@@ -1,7 +1,8 @@
 import json
 
-from werkzeug.security import generate_password_hash
 from sqlalchemy import select
+from werkzeug.security import generate_password_hash
+
 from app.extensions import db
 from app.models import (
     Category,
@@ -504,9 +505,7 @@ def test_save_prescriptions_missing_source(client, app, monkeypatch):
 
     assert response.status_code == 302
 
-    assert response.headers["Location"].endswith(
-        f"/diaries/{diary_id}"
-    )
+    assert response.headers["Location"].endswith(f"/diaries/{diary_id}")
 
     with app.app_context():
         entry = db.session.scalar(

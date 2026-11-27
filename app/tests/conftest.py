@@ -1,4 +1,3 @@
-
 import pytest
 
 from app import create_app
@@ -31,9 +30,7 @@ def app():
 
         for source_name, values in sources.items():
             source = TherapySource(name=source_name)
-            source.values = [
-                TherapySourceValue(name=value) for value in values
-            ]
+            source.values = [TherapySourceValue(name=value) for value in values]
             db.session.add(source)
 
         db.session.commit()
@@ -47,6 +44,7 @@ def app():
         finally:
             db.session.remove()
             db.engine.dispose()
+
 
 @pytest.fixture
 def client(app):

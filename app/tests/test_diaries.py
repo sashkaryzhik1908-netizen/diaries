@@ -163,9 +163,7 @@ def test_create_diary_commit_error(client, app, monkeypatch):
     assert response.location.endswith("/diaries")
 
     with app.app_context():
-        assert db.session.scalar(
-            select(func.count()).select_from(Diary)
-        ) == 0
+        assert db.session.scalar(select(func.count()).select_from(Diary)) == 0
 
 
 # Проверка успешного удаления дневника
